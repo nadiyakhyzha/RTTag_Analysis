@@ -1,0 +1,205 @@
+# The following was used for generating Figure 2C. Values for plotting were obtained from QualiMap RNA-Seq QC. 
+
+exonic<- 4439719
+intronic<- 1102170 
+intergenic<- 1212728
+
+# These corresponded to the following percentages: 
+#Exonic: 	4,439,719 / 65.73%
+#Intronic: 	1,102,170 / 16.32%
+#Intergenic: 	1,212,728 / 17.95%
+
+# Values were plotted as a pie chart.
+combined<- list(exonic, intronic, intergenic)
+names(combined)<- c("exonic 66%", "intronic 16%", "intergenic 18%")
+
+pdf("PieChart_read_distribution.pdf", 6,5)
+pie(unlist(combined), labels = names(combined), main="Distribution of MSL2 RT&Tag reads", col =c("black", "grey", "white"), cex=1.2, cex.main=1.5)
+dev.off()
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used for generating Figure 2D. Values for plotting were obtained from RSeQC. Plot as density plot.
+
+pdf('oligodT_output.geneBodyCoverage.pdf')
+x=1:100
+y=c(11540.007007524371,13967.537831947207,15188.544282406569,16827.549140915275,18734.396509885788,20059.124006539583,20091.9211563915,20410.032392591238,23598.681956753135,29344.933901906013,31820.983283430338,54811.24987119436,54998.687470421195,67450.7444935441,67959.83893950284,74777.41836844385,68936.07638530433,67754.29649682343,56022.70642966032,51911.618237391114,48103.090732485056,36389.62275463343,38267.831690862775,32677.90234090388,34142.51523581147,35777.63505163789,45395.5285692513,44977.459460392594,44528.027963534,40692.118476092815,36708.51273240149,41107.72117063403,43795.61320230365,48723.742177814245,50696.32076148689,48260.93765839934,46581.53496643901,46821.70449030399,47439.55346469581,47319.72325396538,54804.47993427515,60604.7019302398,58317.7353605479,56550.91112330556,62208.84962709248,63248.4056571722,64501.467557668686,72471.7124311477,72139.03663104773,72281.12174120545,70569.36775690317,64691.131835877895,62905.733100533485,62293.22044463456,61186.718769431114,62626.466786161065,63125.84522116184,61407.47032499313,69211.0076622665,73665.21576608717,79665.43211424351,80325.21286325157,77757.39991739392,80745.03313322365,84056.04283799231,83414.28672872484,84668.28786443174,89832.62052342296,79402.17659151554,81423.85561530292,88232.33438628912,89208.48900516331,90471.90631751716,94509.34548996389,99844.43435053527,104357.81207148731,107648.87198588252,112473.4017907232,120395.98065890372,133321.24029140174,134900.04002326727,133286.3055744022,135417.80967889726,147980.47638872266,151648.3588655442,151942.50571267307,155325.00418050587,163930.62788771093,168027.4542246312,177333.93103086948,181564.20681008697,185046.66448420286,190168.6432260126,195894.07592353225,197329.5330516398,200637.87235075235,200957.60600323975,187218.41813519597,165080.21132990718,116191.01772922277)
+plot(x,y/36294,xlab="percentile of gene body (5'->3')",ylab='average wigsum',type='h', lwd=6, cex.axis=1.5, cex.lab= 1.5)
+dev.off()
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+#  The following was used for the differential enrichment analysis for Figure 2.
+
+library(rtracklayer)
+library(DESeq2)
+
+# Import in gtf file using rtracklayer package
+
+gtf<- import("~/PATH/Drosophila_melanogaster.BDGP6.28.47.gtf")
+gtf_df<-as.data.frame(gtf)
+gtf_df<-(gtf_df[gtf_df$type=="gene",])[,c(1:7,10:13)]
+
+# Open up read count files
+
+featureCounts_IgG_oligodt_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_IgG_n1.tabular", comment.char="#")[,c(1,7)]
+featureCounts_MSL2_oligodt_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_MSL2_n1.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_oligodt_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_IgG_n2.tabular", comment.char="#")[,c(1,7)]
+featureCounts_MSL2_oligodt_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_MSL2_n2.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_oligodt_n3<- read.delim("~/PATH/featureCounts_S2_RT&Tag_IgG_n3.tabular", comment.char="#")[,c(1,7)]
+featureCounts_MSL2_oligodt_n3<- read.delim("~/PATH/featureCounts_S2_RT&Tag_MSL2_n3.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_oligodt_n4<- read.delim("~/PATH/featureCounts_S2_RT&Tag_IgG_n4.tabular", comment.char="#")[,c(1,7)]
+featureCounts_MSL2_oligodt_n4<- read.delim("~/PATH/featureCounts_S2_RT&Tag_MSL2_n4.tabular", comment.char="#")[,c(1,7)]
+
+
+Counts_MSL2_oligodt<-cbind(featureCounts_IgG_oligodt_n1[,2], featureCounts_MSL2_oligodt_n1[,2],
+                           featureCounts_IgG_oligodt_n2[,2], featureCounts_MSL2_oligodt_n2[,2],
+                           featureCounts_IgG_oligodt_n3[,2], featureCounts_MSL2_oligodt_n3[,2],
+                           featureCounts_IgG_oligodt_n4[,2], featureCounts_MSL2_oligodt_n4[,2])
+
+colnames(Counts_MSL2_oligodt)<-c("IgG oligodT n1", "MSL2 oligodT n1", 
+                            "IgG oligodT n2", "MSL2 oligodT n2", 
+                            "IgG oligodT n3", "MSL2 oligodT n3", 
+                            "IgG oligodT n4", "MSL2 oligodT n4")
+rownames(Counts_MSL2_oligodt)<-featureCounts_IgG_oligodt_n1[,1]
+
+# Set up the metadata for differential enrichment
+Protein<- c("IgG","MSL2", "IgG", "MSL2", "IgG", "MSL2", "IgG", "MSL2") 
+Condition<- c("n1", "n1", "n2", "n2",  "n3", "n3", "n4", "n4")
+Metadata<- cbind(Protein, Condition)
+rownames(Metadata)<- c("IgG oligodT n1", "MSL2 oligodT n1", 
+                       "IgG oligodT n2", "MSL2 oligodT n2", 
+                       "IgG oligodT n3", "MSL2 oligodT n3", 
+                       "IgG oligodT n4", "MSL2 oligodT n4")
+
+# Perform differential enrichment using DESeq2
+Count_Table_MSL2_oligodt <- DESeqDataSetFromMatrix(countData = Counts_MSL2_oligodt, colData = Metadata,
+                                                   design = ~ Protein + Condition)
+Count_Table_DESeq_MSL2_oligodt<- DESeq(Count_Table_MSL2_oligodt)
+Counts_normalized_MSL2_oligodt<- cbind(gtf_df[,c(1:6,11,8:9)],counts(Count_Table_DESeq_MSL2_oligodt, normalized=TRUE))
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used for generating the PCA plot for Figure 2E
+library(ggplot2)
+
+PCA<- plotPCA(rlog(Count_Table_DESeq_MSL2_oligodt), intgroup= "Protein", returnData=TRUE)
+PCA$name<- c("n1", "n1", "n2", "n2", "n3", "n3", "n4", "n4")
+colnames(PCA)<- c("PC1", "PC2", "group","Target", "Replicate")
+
+PCA_plot<-ggplot(PCA, aes(PC1, PC2, color=Target, shape=Replicate)) +
+  geom_point(size=3) +
+  scale_shape_manual(values=c(16, 17, 15, 18))+
+  scale_color_manual(values=c('black','red'))+
+  xlab(paste0("PC1: 55% variance")) +
+  ylab(paste0("PC2: 27% variance")) + 
+  coord_fixed()
+
+pdf("IgGvsMSL2_PCAplot.pdf", 8,5)
+PCA_plot
+dev.off()
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used for generating the volcano plot for Figure 2F
+RetrieveAll <- function(n1, n2, n3, n4) {
+  n1 <- n1
+  n2 <- n2
+  n3 <- n3
+  n4 <- n4
+  
+  Results<-results(n4, contrast= c("Protein", n1, n2), name = n3)
+  Results_log2<-Results$log2FoldChange
+  Results_pvalue<-Results$padj
+  diffexpressed <- "NO"
+  Results_combined<- cbind(gtf_df[,c(1:5,11,8:9)],Results_log2, Results_pvalue, diffexpressed)
+  Results_combined<- Results_combined[!is.na(Results_log2),]
+  Results_combined<-as.data.frame(Results_combined)
+  Results_combined$diffexpressed[Results_combined$Results_log2 >1 &
+                                   Results_combined$Results_pvalue <0.05] <- "UP"
+  Results_combined$diffexpressed[Results_combined$Results_log2 < -1 &
+                                   Results_combined$Results_pvalue <0.05] <- "DOWN"
+  return(Results_combined)
+}
+
+Results_MSL2_IgG_oligodt<- RetrieveAll("MSL2", "IgG", "Protein_MSL2_vs_IgG", Count_Table_DESeq_MSL2_oligodt)
+
+mycolors <- c("blue", "red", "black")
+names(mycolors) <- c("DOWN", "UP", "NO")
+
+Results_MSL2_IgG_oligodt$delabel <- NA
+Results_MSL2_IgG_oligodt$delabel[Results_MSL2_IgG_oligodt$gene_name == "lncRNA:roX2"] <- "lncRNA.roX2"
+Results_MSL2_IgG_oligodt$Results_pvalue[Results_MSL2_IgG_oligodt$gene_name == "lncRNA:roX2"] <- 1e-22
+
+
+p<- ggplot(data=Results_MSL2_IgG_oligodt, aes(x=Results_log2, y=-log10(Results_pvalue), col=diffexpressed,  label=delabel)) + geom_point(size=2) + theme_minimal() + geom_text (size=6.5, nudge_x= -2.5, nudge_y = 0) +
+  geom_vline(xintercept=c(-1, 1), col="black") +
+  geom_hline(yintercept=-log10(0.05), col="black") +
+  theme(text = element_text(size = 20)) +
+  labs(x="MSL2/IgG RT&Tag Fold change (log2)", y="FDR (-log10)")
+p2 <- p + scale_colour_manual(values = mycolors)
+
+
+pdf("MSL2 vs IgG_pvalue.pdf", 7,5)
+p2
+dev.off()
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used for generating the karyoplot for Figure 2H
+
+library(GenomicRanges)
+library(karyoploteR)
+
+# Import in the IgG normalized MSL2 bigwig file
+MSL2_log2_IgG<- import.bw("~/PATH/MSL2_log2_IgG.bw")
+MSL2_log2_IgG<- as.data.frame(MSL2_log2_IgG)
+
+# Save the bins that show greater than 4 fold enrichment for MSL2 over IgG
+MSL2_log2_IgG<- MSL2_log2_IgG[MSL2_log2_IgG$score>2,]
+# total number of bins is 52990
+# number bins on X chromosomes is 29863 which is 56.3% of bins
+
+MSL2_log2_IgG<- makeGRangesFromDataFrame(MSL2_log2_IgG)
+
+# plot
+
+pdf("Karyoplot_MSL2_log2_IgG.pdf", 5, 5)
+kp <- plotKaryotype(genome="dm6", plot.type=2, chromosomes=c("chr2L", "chr2R", "chr3L", "chr3R", "chr4", "chrX", "chrY"))
+kp <- kpPlotDensity(kp, MSL2_log2_IgG, data.panel2I=1, col="red", window.size = 1000)
+dev.off()
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Retrieve coordinates for generating profile plots for Figure 2I
+
+getTSS <- function(x){
+  x<- x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  x<- promoters(x, upstream=1, downstream=1)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
+getFullLength <- function(x){
+  x<-x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
+MSL2_UP<- Results_MSL2_IgG_oligodt[Results_MSL2_IgG_oligodt$diffexpressed=="UP",]
+MSL2_UP_TSS<- getTSS(MSL2_UP)
+MSL2_NO<- Results_MSL2_IgG_oligodt[Results_MSL2_IgG_oligodt$diffexpressed!="UP",]
+MSL2_NO_TSS<- getTSS(MSL2_NO)
+
+write.csv(MSL2_UP_TSS, "MSL2_UP_TSS.csv")
+write.csv(MSL2_NO_TSS, "MSL2_NO_TSS.csv")
+
+MSL2_UP_genebody<- getFullLength(MSL2_UP)
+MSL2_NO_genebody<- getFullLength(MSL2_NO)
+
+write.csv(MSL2_UP_genebody, "MSL2_UP_genebody.csv")
+write.csv(MSL2_NO_genebody, "MSL2_NO_genebody.csv")
