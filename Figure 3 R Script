@@ -1,0 +1,276 @@
+#  The following was used for the differential enrichment analysis for Figure 3.
+
+library(rtracklayer)
+library(DESeq2)
+library(ggplot2)
+library(ggrepel)
+library(GenomicRanges)
+
+# Import in gtf file using rtracklayer package
+
+gtf<- import("~/PATH/Drosophila_melanogaster.BDGP6.28.47.gtf")
+gtf_df<-as.data.frame(gtf)
+gtf_df<-(gtf_df[gtf_df$type=="gene",])[,c(1:7,10:13)]
+
+# Open up read count files
+featureCounts_IgG_oligodt_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_IgG_n1.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_oligodt_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_H3K27me3_n1.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_oligodt_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_IgG_n2.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_oligodt_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_H3K27me3_n2.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_oligodt_n3<- read.delim("~/PATH/featureCounts_S2_RT&Tag_IgG_n3.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_oligodt_n3<- read.delim("~/PATH/featureCounts_S2_RT&Tag_H3K27me3_n3.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_oligodt_n4<- read.delim("~/PATH/featureCounts_S2_RT&Tag_IgG_n4.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_oligodt_n4<- read.delim("~/PATH/featureCounts_S2_RT&Tag_H3K27me3_n4.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_oligodt_n5<- read.delim("~/PATH/featureCounts_S2_RT&Tag_IgG_n5.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_oligodt_n5<- read.delim("~/PATH/featureCounts_S2_RT&Tag_H3K27me3_n5.tabular", comment.char="#")[,c(1,7)]
+
+Counts_oligodt<-cbind(featureCounts_IgG_oligodt_n1[,2], featureCounts_K27me3_oligodt_n1[,2], 
+                      featureCounts_IgG_oligodt_n2[,2], featureCounts_K27me3_oligodt_n2[,2], 
+                      featureCounts_IgG_oligodt_n3[,2], featureCounts_K27me3_oligodt_n3[,2], 
+                      featureCounts_IgG_oligodt_n4[,2], featureCounts_K27me3_oligodt_n4[,2], 
+                      featureCounts_IgG_oligodt_n5[,2], featureCounts_K27me3_oligodt_n5[,2])
+colnames(Counts_oligodt)<-c("IgG oligodT n1", "K27me3 oligodT n1", 
+                            "IgG oligodT n2", "K27me3 oligodT n2", 
+                            "IgG oligodT n3", "K27me3 oligodT n3", 
+                            "IgG oligodT n4", "K27me3 oligodT n4",
+                            "IgG oligodT n5", "K27me3 oligodT n5")
+rownames(Counts_oligodt)<-featureCounts_IgG_oligodt_n1[,1]
+
+# Set up the metadata for differential enrichment
+
+Protein<- c("IgG","K27me3",  "IgG","K27me3",  "IgG","K27me3", "IgG","K27me3", "IgG","K27me3") 
+Condition<- c("n1", "n1", "n2", "n2", "n3", "n3", "n4", "n4", "n5", "n5")
+Metadata<- cbind(Protein, Condition)
+rownames(Metadata)<- c("IgG n1", "K27me3 n1", 
+                       "IgG n2", "K27me3 n2", 
+                       "IgG n3", "K27me3 n3", 
+                       "IgG n4", "K27me3 n4", 
+                       "IgG n5", "K27me3 n5")
+
+
+# Perform differential enrichment using DESeq2
+Count_Table_oligodt <- DESeqDataSetFromMatrix(countData = Counts_oligodt, colData = Metadata,
+                                            design = ~ Protein + Condition)
+Count_Table_DESeq_oligodt<- DESeq(Count_Table_oligodt)
+Counts_normalized_oligodt<- cbind(gtf_df[,c(1:6,11,8:9)],counts(Count_Table_DESeq_oligodt, normalized=TRUE))
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used for generating the volcano plot for Figure 3B
+
+# First retrieve the fold change and FDR values for all transcripts
+
+RetrieveAll <- function(n1, n2, n3, n4) {
+  n1 <- n1
+  n2 <- n2
+  n3 <- n3
+  n4 <- n4
+  
+  Results<-results(n4, contrast= c("Protein", n1, n2), name = n3)
+  Results_log2<-Results$log2FoldChange
+  Results_pvalue<-Results$padj
+  diffexpressed <- "NO"
+  Results_combined<- cbind(gtf_df[,c(1:5,11,8:9)],Results_log2, Results_pvalue, diffexpressed)
+  Results_combined<- Results_combined[!is.na(Results_log2),]
+  Results_combined<-as.data.frame(Results_combined)
+  Results_combined$diffexpressed[Results_combined$Results_log2 >1 &
+                                   Results_combined$Results_pvalue <0.05] <- "UP"
+  Results_combined$diffexpressed[Results_combined$Results_log2 < -1 &
+                                   Results_combined$Results_pvalue <0.05] <- "DOWN"
+  return(Results_combined)
+}
+
+
+Results_K27me3_IgG_oligodt<- RetrieveAll("K27me3", "IgG", "Protein_K27me3_vs_IgG", Count_Table_DESeq_oligodt)
+
+# plot the volcano plot
+mycolors <- c("blue", "red", "black")
+names(mycolors) <- c("DOWN", "UP", "NO")
+
+Results_K27me3_IgG_oligodt$delabel <- NA
+Results_K27me3_IgG_oligodt$delabel[Results_K27me3_IgG_oligodt$gene_name == "lncRNA:CR43334"] <- "lncRNA:CR43334"
+Results_K27me3_IgG_oligodt$delabel[Results_K27me3_IgG_oligodt$gene_name == "lncRNA:CR42862"] <- "lncRNA:CR42862"
+
+
+p<- ggplot(data=Results_K27me3_IgG_oligodt, aes(x=Results_log2, y=-log10(Results_pvalue), col=diffexpressed,  label=delabel)) + geom_point(size=2) + theme_minimal() + geom_text (size=6.5, nudge_x= 3, nudge_y = 4.5) + 
+  geom_vline(xintercept=c(-1, 1), col="black") +
+  geom_hline(yintercept=-log10(0.05), col="black") +
+  theme(text = element_text(size = 20)) +
+  labs(x="Fold change (log2)", y="FDR (-log10)")
+p2 <- p + scale_colour_manual(values = mycolors)
+
+
+pdf("K27me3 vs IgG_pvalue.pdf", 7,5)
+p2
+dev.off()
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used for generating the barplot for Figure 3D
+
+K27me3_oligodT_UP<- Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="UP",]
+
+K27me3_oligodT_NO<- Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="NO",]
+
+
+table(K27me3_oligodT_UP$gene_biotype)
+#ncRNA      pre_miRNA protein_coding     pseudogene         snoRNA           tRNA 
+#157              1           1178              4              2              1
+
+pdf("K27me3_codingnoncoding_distribution.pdf", 2, 4)
+barplot(c(1178, (157+1+4+2+1)), col= "red", ylab= "Number of transcripts", names= c("protein coding", "noncoding"))
+dev.off()
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used for generating the boxplot for Figure 3E
+
+# Retrieve the count number for K27me3 enriched or not for IgG
+
+# Open up RNA-seq data
+
+featureCounts_RNAseq_n1<- read.delim("~/PATH/featureCounts_S2_WC_RNAseq_n1.tabular", comment.char="#")[,c(1,7)]
+featureCounts_RNAseq_n2<- read.delim("~/PATH/featureCounts_S2_WC_RNAseq_n2.tabular", comment.char="#")[,c(1,7)]
+
+# Find the average of the RNA-seq counts
+RNAseq_merged<- cbind(gtf_df[,c(1:6,11,8:9)], featureCounts_RNAseq_n1[,2], featureCounts_RNAseq_n2[,2])
+average_CPM<- vector(length=nrow(RNAseq_merged))
+RNAseq_merged <- cbind(RNAseq_merged, average_CPM)
+
+for (i in 1:nrow(RNAseq_merged)){
+  RNAseq_merged$average_CPM[i]<- mean(RNAseq_merged$`featureCounts_RNAseq_n1[, 2]`[i], RNAseq_merged$`featureCounts_RNAseq_n2[, 2]`[i])
+}
+
+average_CPM<- vector(length=nrow(Results_K27me3_IgG_oligodt))
+
+Results_K27me3_IgG_oligodt<- cbind(Results_K27me3_IgG_oligodt, average_CPM)
+
+for (i in 1:nrow(Results_K27me3_IgG_oligodt)){
+  Results_K27me3_IgG_oligodt[i,13]<- RNAseq_merged$average_CPM[(RNAseq_merged$gene_name==Results_K27me3_IgG_oligodt$gene_name[i])]
+}
+
+mean(Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="UP",13])
+# 16.56515
+
+mean(Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="NO",13])
+# 97.11317
+
+t.test((Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="UP",13]), (Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="NO",13]), paired = FALSE)
+#p-value < 2.2e-16
+
+pdf("K27me3_CPM.pdf", 2, 4)
+boxplot(Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="UP",13], Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="NO",13], outline=FALSE, names= c("K27me3 Enriched", "Non-Enriched"), col=c("red", "grey"), ylab="CPM")
+dev.off()
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Retrieve the IgG & K27me3 counts for the hox genes. These are then plotted in Figure 3G.
+
+hox_genes_names<- c("lab", "pb", "zen", "bcd", "Dfd", "Scr", "ftz", "Antp", "Ubx", "abd-A", "lncRNA:iab4", "lncRNA:iab8","Abd-B")
+hox_genes_oligodT<-matrix(nrow=length(hox_genes_names), ncol=11)
+hox_genes_oligodT<- as.data.frame(hox_genes_oligodT)
+
+
+for (i in 1:length(hox_genes_names)){
+  hox_genes_oligodT[i,1:11]<- Counts_normalized_oligodt[Counts_normalized_oligodt$gene_name==hox_genes_names[i],9:19]
+}
+
+write.csv(hox_genes_oligodT, "hox_genes_oligodT.csv")
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Calculate the CPM for the top 25% of expressed genes. This is used for determining the background K27me3 levels in Supplementary Figure 4A
+17807/4
+# 4451.75
+
+sort(RNAseq_merged$average_CPM, decreasing= TRUE)[4451]
+# 17
+
+top25_RNAseq<- RNAseq_merged[(RNAseq_merged$average_CPM >= 17),]
+write.csv(top25_RNAseq, "top25_RNAseq.csv")
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+
+# Extracting the coordinates of K27me3 enriched or nonenriched transcripts for plotting in Figure 3F &H
+
+# Function for obtaining the TSS coordinates
+
+getTSS <- function(x){
+  x<- x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  x<- promoters(x, upstream=1, downstream=1)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
+# Function for obtaining the full length coordinates
+
+getFullLength <- function(x){
+  x<-x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
+# Running the functions to obtain the coordinates
+K27me3_oligodT_TSS<-getTSS(K27me3_oligodT_UP)
+
+K27me3_oligodT_genebody<-getFullLength(K27me3_oligodT_UP)
+
+NO_oligodT_TSS<-getTSS(K27me3_oligodT_NO)
+NO_oligodT_genebody<-getFullLength(K27me3_oligodT_NO)
+
+# Saving the coordinates
+
+write.csv(K27me3_oligodT_TSS, "K27me3_oligodT_TSS.csv")
+write.csv(K27me3_oligodT_genebody, "K27me3_oligodT_genebody.csv")
+write.csv(NO_oligodT_TSS, "NO_oligodT_TSS.csv")
+write.csv(NO_oligodT_genebody, "NO_oligodT_genebody.csv")
+
+top25_RNAseq_TSS <- getTSS(top25_RNAseq)
+write.csv(top25_RNAseq_TSS, "top25_RNAseq_TSS.csv")
+#-----------------------------------------------------------------------------------------------------------------------------------
+
+# Calculating the CPM of K27me3 RT&Tag enriched transcripts that are transcribed from regions of high or low K27me3 levels.
+# This is used for Supplementary Figure 4B
+
+K27me3_oligodT_genebody_under9 <- read.csv("~/PATH/K27me3_oligodT_genebody_under9.csv", header=FALSE)[-1,]
+K27me3_oligodT_genebody_over9 <- read.csv("~/PATH/K27me3_oligodT_genebody_over9.csv", header=FALSE)[-1,]
+
+average_CPM<- vector(length=nrow(K27me3_oligodT_genebody_under9))
+
+K27me3_oligodT_genebody_under9<- cbind(K27me3_oligodT_genebody_under9, average_CPM)
+
+
+average_CPM<- vector(length=nrow(K27me3_oligodT_genebody_over9))
+
+K27me3_oligodT_genebody_over9<- cbind(K27me3_oligodT_genebody_over9, average_CPM)
+
+# Use the RNA-seq values to find the expression levels of the K27me3 high or low transcripts
+for (i in 1:nrow(K27me3_oligodT_genebody_under9)){
+  K27me3_oligodT_genebody_under9[i,13]<- RNAseq_merged$average_CPM[(RNAseq_merged$gene_name==K27me3_oligodT_genebody_under9$V8[i])]
+}
+
+
+K27me3_oligodT_genebody_over9<- K27me3_oligodT_genebody_over9[-144,]
+for (i in 1:nrow(K27me3_oligodT_genebody_over9)){
+  K27me3_oligodT_genebody_over9[i,13]<- RNAseq_merged$average_CPM[(RNAseq_merged$gene_name==K27me3_oligodT_genebody_over9$V8[i])]
+}
+
+# Plot
+
+pdf("K27me3_cisvstrans_CPM.pdf", 2, 4)
+boxplot(K27me3_oligodT_genebody_over9$average_CPM, K27me3_oligodT_genebody_under9$average_CPM , outline=FALSE, names= c("high K27me3", "low K27me3"), col=c("red", "pink"), ylab="CPM")
+dev.off()
+
+mean(K27me3_oligodT_genebody_over9$average_CPM)
+# 8.524735
+
+mean(K27me3_oligodT_genebody_under9$average_CPM)
+# 60.85507
+
+t.test(K27me3_oligodT_genebody_over9$average_CPM, K27me3_oligodT_genebody_under9$average_CPM, paired=FALSE)
+# 0.003874
