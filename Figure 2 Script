@@ -1,0 +1,58 @@
+#!/bin/sh
+
+# Merge RT&Tag replicate BAM files
+
+samtools merge IgG_RTTag.bam S2_RT&Tag_IgG_n1.bam S2_RT&Tag_IgG_n2.bam S2_RT&Tag_IgG_n3.bam S2_RT&Tag_IgG_n4.bam 
+samtools merge MSL2_RTTag.bam S2_RT&Tag_MSL2_n1.bam S2_RT&Tag_MSL2_n2.bam S2_RT&Tag_MSL2_n3.bam S2_RT&Tag_MSL2_n4.bam
+
+samtools sort IgG_RTTag.bam -T IgG_RTTag_sorted -o IgG_RTTag_sorted.bam
+samtools sort MSL2_RTTag.bam -T MSL2_RTTag_sorted -o MSL2_RTTag_sorted.bam
+
+samtools index IgG_RTTag_sorted.bam
+samtools index MSL2_RTTag_sorted.bam
+
+
+
+# Generate bigwig files that are used for generating Figure 2G and Supplementary Figure 3
+
+bamCoverage --bam IgG_RTTag_sorted.bam -o IgG_RTTag.bw --normalizeUsing CPM
+bamCoverage --bam MSL2_RTTag_sorted.bam -o MSL2_RTTag.bw --normalizeUsing CPM
+
+
+
+# Generate a bigwig file where the MSL2 signal is normalized for IgG. This file is then 
+# used for Figure 2H
+
+bamCompare -b1 MSL2_RTTag_sorted.bam -b2 IgG_RTTag_sorted.bam --operation log2 --outFileFormat bigwig  --outFileName MSL2_log2_IgG.bw
+
+
+
+# Merge MSL2 CUT&Tag replicate SAM files
+
+samtools merge MSL2_CT.bam S2_CUT&Tag_MSL2_n1.bam S2_CUT&Tag_MSL2_n2.bam
+samtools sort -n MSL2_CT.bam -T MSL2_CT_sorted -o MSL2_CT_sorted.bam
+
+
+
+# Generating an MSL2 CUT&Tag bigwig file. This bigwig file is used in Supplemetary Figure # 3 and for plotting Figure 2I
+
+bedtools bamtobed -bedpe -i MSL2_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >MSL2_CT.1-1000.bed
+
+bedtools genomecov -i MSL2_CT.1-1000.bed -g /dm6.chrom.sizes.txt -bg >MSL2_CT.1-1000.bedgraph
+
+bedGraphToBigWig MSL2_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes MSL2_CT.1-1000.bedgraph.bw
+
+
+
+# Generating Profile Plots in Figure 2I
+
+computeMatrix reference-point -S MSL2_CT.1-1000.bedgraph.bw -R MSL2_UP_TSS.txt MSL2_NO_TSS.txt -a 1000 -b 1000 --binSize 25  -out UP_NO_MSL2.gz
+
+computeMatrix scale-regions -S H4K16ac.1-1000.bedgraph.bw -R MSL2_UP_genebody.txt MSL2_NO_genebody.txt -m 5000 -a 1000 -b 1000 --binSize 25 -out UP_NO_H4K16ac_genebody.gz
+
+
+plotProfile --matrixFile UP_NO_MSL2.gz --colors red black --plotType se --startLabel TSS --endLabel TES --regionsLabel  "MSL2 Enriched" "Nonenriched" --yMin 0 --samplesLabel MSL2 --outFileName UP_NO_MSL2.gz.pdf
+
+plotProfile --matrixFile UP_NO_H4K16ac_genebody.gz --colors red black --plotType se --startLabel TSS --endLabel TES --regionsLabel  "MSL2 Enriched" "Nonenriched" --yMin 0 --samplesLabel H4K16ac --outFileName UP_NO_H4K16ac_genebody.gz.pdf
+
+
