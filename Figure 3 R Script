@@ -274,3 +274,33 @@ mean(K27me3_oligodT_genebody_under9$average_CPM)
 
 t.test(K27me3_oligodT_genebody_over9$average_CPM, K27me3_oligodT_genebody_under9$average_CPM, paired=FALSE)
 # 0.003874
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Generating coordinate file for K27me3 RT&Tag enriched genes with high or low K27me3 CUT&Tag signal 
+# that is centered around the TSS. These will then be used for Figure 3H
+
+
+K27me3_oligodT_genebody_over9 <- K27me3_oligodT_genebody_over9[,1:8]
+K27me3_oligodT_genebody_under9 <- K27me3_oligodT_genebody_under9 [,1:8]
+
+colnames(K27me3_oligodT_genebody_over9)<- c("chr", "start", "end", "width", "strand","extra", "extra2", "extra3")
+colnames(K27me3_oligodT_genebody_under9)<- c("chr", "start", "end", "width", "strand","extra", "extra2", "extra3")
+
+library(GenomicRanges)
+
+getTSS <- function(x){
+  x<- x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  x<- promoters(x, upstream=1, downstream=1)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
+K27me3_oligodT_TSS_over9<-getTSS(K27me3_oligodT_genebody_over9)
+K27me3_oligodT_TSS_under9<-getTSS(K27me3_oligodT_genebody_under9)
+
+write.csv(K27me3_oligodT_TSS_over9, "K27me3_oligodT_TSS_over9.csv")
+write.csv(K27me3_oligodT_TSS_under9, "K27me3_oligodT_TSS_under9.csv")
