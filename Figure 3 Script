@@ -1,0 +1,106 @@
+#!/bin/sh
+
+# Merging IgG and K27me3 RT&Tag replicate BAM files together
+
+samtools merge IgG_RTTag.bam S2_RT&Tag_IgG_n1.bam S2_RT&Tag_IgG_n2.bam S2_RT&Tag_IgG_n3.bam S2_RT&Tag_IgG_n4.bam S2_RT&Tag_IgG_n5.bam 
+samtools merge K27me3_RTTag.bam S2_RT&Tag_H3K27me3_n1.bam S2_RT&Tag_H3K27me3_n2.bam S2_RT&Tag_H3K27me3_n3.bam S2_RT&Tag_H3K27me3_n4.bam S2_RT&Tag_H3K27me3_n5.bam 
+
+samtools sort IgG_RTTag.bam -T IgG_RTTag_sorted -o IgG_RTTag_sorted.bam
+samtools sort K27me3_RTTag.bam -T K27me3_RTTag_sorted -o K27me3_RTTag_sorted.bam
+
+samtools index IgG_RTTag_sorted.bam
+samtools index K27me3_RTTag_sorted.bam
+
+
+
+# Generating bigwig files for IgG and K27me3 RT&Tag. These are used for plotting Figure 3C
+
+bamCoverage --bam IgG_RTTag_sorted.bam -o IgG_RTTag.bw --normalizeUsing CPM
+bamCoverage --bam K27me3_RTTag_sorted.bam -o K27me3_RTTag.bw --normalizeUsing CPM
+
+
+
+# Merging K27me3 CUT&Tag replicate files together
+
+samtools merge K27me3_CT.bam S2_CUT&Tag_H3K27me3_n1.bam S2_CUT&Tag_H3K27me3_n2.bam
+samtools sort -n K27me3_CT.bam -T K27me3_CT_sorted -o K27me3_CT_sorted.bam
+
+
+
+# Generating bigwig files that are used for plotting Figure 3F, H, and Supplementary Figure 4A
+
+bedtools bamtobed -bedpe -i K27me3_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >K27me3_CT.1-1000.bed
+
+bedtools genomecov -i K27me3_CT.1-1000.bed -g /Users/nkhyzha/Documents/AnalysisTools/dm6.chrom.sizes.txt -bg >K27me3_CT.1-1000.bedgraph
+
+bedGraphToBigWig K27me3_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes K27me3_CT.1-1000.bedgraph.bw
+
+
+
+
+# Plotting the K27me3, K36me3 and K4me3 CUT&Tag signal for Figure 3F
+
+computeMatrix scale-regions -S K27me3_CT.1-1000.bedgraph.bw -R K27me3_oligodT_genebody.txt NO_oligodT_genebody.txt -m 5000 -a 1000 -b 1000 --binSize 25 -out K27me3RTTag_K27me3_genebody.gz
+
+
+computeMatrix reference-point -S S2_CUT&Tag_H3K4me3.1-1000.bedgraph.bw -R K27me3_oligodT_TSS.txt NO_oligodT_TSS.txt -a 1000 -b 1000 --binSize 25  -out K27me3RTTag_K4me3_TSS.gz
+
+
+computeMatrix scale-regions -S S2_CUT&Tag_H3K36me3.1-1000.bedgraph.bw -R K27me3_oligodT_genebody.txt NO_oligodT_genebody.txt -m 5000 -a 1000 -b 1000 --binSize 25 -out K27me3RTTag_K36me3_genebody.gz
+
+
+plotProfile --matrixFile K27me3RTTag_K27me3_genebody.gz --colors red black --plotType se --startLabel TSS --endLabel TES --regionsLabel "K27me3 Enriched" "Nonenriched"  --samplesLabel K27me3 --yMin 0 --plotHeight 7 --plotWidth 10 --outFileName K27me3RTTag_K27me3_genebody.gz.pdf
+
+
+plotProfile --matrixFile K27me3RTTag_K4me3_TSS.gz --colors red black --plotType se --startLabel TSS --endLabel TES --regionsLabel "K27me3 Enriched" "Nonenriched"  --samplesLabel K4me3 --yMin 0 --plotHeight 7 --plotWidth 10 --outFileName K27me3RTTag_K4me3_TSS.gz.pdf
+
+
+plotProfile --matrixFile K27me3RTTag_K36me3_genebody.gz --colors red black --plotType se --startLabel TSS --endLabel TES --regionsLabel "K27me3 Enriched" "Nonenriched"  --samplesLabel K36me3 --yMin 0 --plotHeight 7 --plotWidth 10 --outFileName K27me3RTTag_K36me3_genebody.gz.pdf
+
+
+
+
+# Calculating the background K27me3 levels as the K27me3 CUT&Tag signal over the gene bodies of the top 25% expressed genes.
+# Plotted in Supplementary Figure 4A
+
+computeMatrix scale-regions -S K27me3_CT.1-1000.bedgraph.bw -R top25_RNAseq.txt -m 5000 -a 1000 -b 1000 --binSize 25 -out Top25_K27me3_genebody.gz
+
+
+plotProfile --matrixFile Top25_K27me3_genebody.gz --colors black --plotType se --startLabel TSS --endLabel TES --regionsLabel "Background"  --samplesLabel K27me3 --yMin 0 --outFileName Top25_K27me3_genebody.gz.pdf
+
+
+
+
+# Calculating the K27me3 CUT&Tag signal over the gene bodies of K27me3 RT&Tag enriched
+# transcripts. Using Excel, first merge this file with the gene info from 
+# K27me3_oligodT_genebody.txt. Afterwards subdivide the list into genes that 
+# had >9 or <9 signal. Save as csv.
+
+
+multiBigwigSummary BED-file -b K27me3_CT.1-1000.bedgraph.bw -o multiBigwigSummary_K27me3_genebody.npz --outRawCounts multiBigwigSummary_K27me3_genebody.tab --BED K27me3RTTag_genebody.txt
+
+
+
+# Plotting the K27me3, K36me3, and K4me3 CUT&Tag signal at the TSS or over gene bodies of K27me3 RT&Tag enriched genes that either
+# have above or below background K27me3 CUT&Tag signal over their gene bodies. These are used in Figure 3H
+
+computeMatrix scale-regions -S K27me3_CT.1-1000.bedgraph.bw -R K27me3_oligodT_genebody_under9.txt K27me3_oligodT_genebody_over9.txt -m 5000 -a 1000 -b 1000 --binSize 25 -out cistrans_K27me3_genebody.gz
+
+computeMatrix scale-regions -S S2_CUT&Tag_K36me3.1-1000.bedgraph.bw -R K27me3_oligodT_genebody_under9.txt K27me3_oligodT_genebody_over9.txt -m 5000 -a 1000 -b 1000 --binSize 25 --missingDataAsZero -out cistrans_K36me3_genebody.gz
+
+computeMatrix reference-point -S S2_CUT&Tag_H3K4me3.1-1000.bedgraph.bw -R K27me3_oligodT_TSS_under9.txt K27me3_oligodT_TSS_over9.txt -a 1000 -b 1000 --missingDataAsZero --binSize 25  -out cistrans_K4me3_TSS.gz
+
+
+plotProfile --matrixFile cistrans_K27me3_genebody.gz --colors pink red --plotType se --startLabel TSS --endLabel TES --regionsLabel "low" "high" --yMin 0 --plotHeight 7 --plotWidth 7  --samplesLabel K27me3  --outFileName Profile_cistrans_K27me3_genebody.gz.pdf
+
+plotProfile --matrixFile cistrans_K36me3_genebody.gz --colors pink red --plotType se --startLabel TSS --endLabel TES --regionsLabel "low" "high" --yMin 0 --plotHeight 7 --plotWidth 7 --samplesLabel K36me3  --outFileName Profile_cistrans_K36me3_genebody.gz.pdf
+
+plotProfile --matrixFile cistrans_K4me3_TSS.gz --colors pink red --plotType se --startLabel TSS --endLabel TES --regionsLabel "low" "high" --yMin 0 --plotHeight 7 --plotWidth 7 --samplesLabel K4me3  --outFileName Profile_cistrans_K4me3_TSS.gz.pdf
+
+
+plotHeatmap --matrixFile cistrans_K27me3_genebody.gz --colorMap Reds --missingDataColor white --regionsLabel "low" "high"  --samplesLabel K27me3 --heatmapHeight 28 --heatmapWidth 7 --outFileName Heatmap_cistrans_K27me3_genebody.gz.pdf
+
+plotHeatmap --matrixFile cistrans_K36me3_genebody.gz --colorMap Reds --missingDataColor white --regionsLabel "low" "high"  --samplesLabel K36me3 --heatmapHeight 28 --heatmapWidth 7   --outFileName Heatmap_cistrans_K36me3_genebody.gz.pdf
+
+plotHeatmap --matrixFile cistrans_K4me3_TSS.gz --colorMap Reds --missingDataColor white --regionsLabel "low" "high"  --samplesLabel K4me3 --heatmapHeight 28 --heatmapWidth 7  --outFileName Heatmap_cistrans_K4me3_TSS.gz.pdf
+
