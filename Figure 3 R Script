@@ -205,6 +205,17 @@ getTSS <- function(x){
   return(x)
 }
 
+# Function for obtaining the TSS coordinates +/- 250bp
+
+getTSS_250 <- function(x){
+  x<- x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  x<- promoters(x, upstream=250, downstream=250)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
 # Function for obtaining the full length coordinates
 
 getFullLength <- function(x){
@@ -231,7 +242,11 @@ write.csv(NO_oligodT_TSS, "NO_oligodT_TSS.csv")
 write.csv(NO_oligodT_genebody, "NO_oligodT_genebody.csv")
 
 top25_RNAseq_TSS <- getTSS(top25_RNAseq)
+top25_RNAseq_TSS_250 <-getTSS_250(top25_RNAseq)
+
 write.csv(top25_RNAseq_TSS, "top25_RNAseq_TSS.csv")
+write.csv(top25_RNAseq_TSS_250, "top25_RNAseq_TSS_250.csv")
+
 #-----------------------------------------------------------------------------------------------------------------------------------
 
 # Calculating the CPM of K27me3 RT&Tag enriched transcripts that are transcribed from regions of high or low K27me3 levels.
