@@ -1,0 +1,555 @@
+#  The following was used for the differential enrichment analysis for Figure 4.
+
+library(rtracklayer)
+library(DESeq2)
+library(ggplot2)
+library(ggrepel)
+library(GenomicRanges)
+library(gplots)
+library(viridis)
+library(tidyverse)
+library(hrbrthemes)
+
+
+# Import in gtf file using rtracklayer package
+
+gtf<- import("~/PATH/Drosophila_melanogaster.BDGP6.28.47.gtf")
+gtf_df<-as.data.frame(gtf)
+gtf_df<-(gtf_df[gtf_df$type=="gene",])[,c(1:7,10:13)]
+
+
+# Open up read count files
+
+featureCounts_IgG_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_m6A_IgGcontrol_n1.tabular", comment.char="#")[,c(1,7)]
+featureCounts_m6A_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_m6A_n1.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_m6A_IgGcontrol_n2.tabular", comment.char="#")[,c(1,7)]
+featureCounts_m6A_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_m6A_n2.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_n3<- read.delim("~/PATH/featureCounts_S2_RT&Tag_m6A_IgGcontrol_n3.tabular", comment.char="#")[,c(1,7)]
+featureCounts_m6A_n3<- read.delim("~/PATH/featureCounts_S2_RT&Tag_m6A_n3.tabular", comment.char="#")[,c(1,7)]
+
+
+Counts<- cbind(featureCounts_IgG_n1[,2], featureCounts_m6A_n1[,2], featureCounts_IgG_n2[,2], 
+               featureCounts_m6A_n2[,2], featureCounts_IgG_n3[,2], featureCounts_m6A_n3[,2])
+
+
+# Set up the metadata for differential enrichment
+
+colnames(Counts)<-c("IgG n1", "m6A n1", "IgG n2", "m6A n2", "IgG n3", "m6A n3")
+
+rownames(Counts)<-featureCounts_IgG_n2[,1]
+Protein<- c( "IgG", "m6A",  "IgG", "m6A", "IgG", "m6A") 
+Condition<- c( "n1", "n1", "n2", "n2", "n3", "n3")
+Metadata<- cbind(Protein, Condition)
+rownames(Metadata)<- c( "IgG n1", "m6A n1", "IgG n2", "m6A n2", "IgG n3", "m6A n3")
+
+# Perform differential enrichment using DESeq2
+
+Count_Table <- DESeqDataSetFromMatrix(countData = Counts, colData = Metadata,
+                                      design = ~ Protein + Condition)
+Count_Table_DESeq<- DESeq(Count_Table)
+
+Counts_normalized<- cbind(gtf_df[,1:9],counts(Count_Table_DESeq, normalized=TRUE))
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used for generating the volcano plot for Figure 4B
+
+# First retrieve the fold change and FDR values for all transcripts
+
+RetrieveAll <- function(n1, n2, n3, n4) {
+  n1 <- n1
+  n2 <- n2
+  n3 <- n3
+  n4 <- n4
+  
+  Results<-results(n4, contrast= c("Protein", n1, n2), name = n3)
+  Results_log2<-Results$log2FoldChange
+  Results_pvalue<-Results$padj
+  diffexpressed <- "NO"
+  Results_combined<- cbind(gtf_df[,1:9],Results_log2, Results_pvalue, diffexpressed)
+  Results_combined<- Results_combined[!is.na(Results_log2),]
+  Results_combined<-as.data.frame(Results_combined)
+  Results_combined$diffexpressed[Results_combined$Results_log2 >0.585 &
+                                   Results_combined$Results_pvalue <0.05] <- "UP"
+  Results_combined$diffexpressed[Results_combined$Results_log2 < -0.585 &
+                                   Results_combined$Results_pvalue <0.05] <- "DOWN"
+  return(Results_combined)
+}
+
+
+
+
+m6a_IgG_ALL<- RetrieveAll("m6A", "IgG", "Protein_m6A_vs_IgG", Count_Table_DESeq)
+
+
+# plot the volcano plot
+
+mycolors <- c("blue", "red", "black")
+names(mycolors) <- c("DOWN", "UP", "NO")
+
+m6a_IgG_ALL$delabel <- NA
+names<- c("Syx1A", "aqz", "pum" , "Prosap", "gish", "RpL15")
+
+for (i in 1:length(names)){
+m6a_IgG_ALL$delabel[m6a_IgG_ALL$gene_name == names[i]] <- names[i]
+}
+
+p<- ggplot(data=m6a_IgG_ALL, aes(x=Results_log2, y=-log10(Results_pvalue), col=diffexpressed)) + 
+  geom_text_repel(
+    aes(label = delabel),
+    col="black",
+    size = 5,
+    box.padding = unit(2, "lines"),
+    point.padding = unit(0.5, "lines"),
+    nudge_y=3) + 
+  geom_point(size=2) + 
+  theme_minimal()+ 
+  geom_vline(xintercept=c(-0.59, 0.59), col="black") +
+  geom_hline(yintercept=-log10(0.05), col="black") +
+  theme(text = element_text(size = 20)) +
+  labs(x="Fold change (log2)", y="FDR (-log10)")
+p2 <- p + scale_colour_manual(values = mycolors)
+
+
+
+pdf("m6A vs IgG_pvalue.pdf", 9.3, 6.7)
+p2
+dev.off()
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used for performing the GO enrichment analysis for Figure 4D
+
+library(clusterProfiler)
+library(org.Dm.eg.db)
+
+# First start with retrieving the gene names of m6A enriched and depleted transcripts
+
+Results_m6A_IgG<- RetrieveAll("m6A", "IgG", "Protein_m6A_vs_IgG", Count_Table_DESeq)
+
+m6A_UP<- Results_m6A_IgG[Results_m6A_IgG$diffexpressed=="UP",]
+m6A_DOWN<- Results_m6A_IgG[Results_m6A_IgG$diffexpressed=="DOWN",]
+m6A_NO<- Results_m6A_IgG[Results_m6A_IgG$diffexpressed=="NO",]
+
+genes_m6A_UP<-m6A_UP$gene_name
+genes_m6A_DOWN<-m6A_DOWN$gene_name
+
+# Convert gene names from "Symbol" to "EntrezID"
+
+genes_m6A_UP<- bitr(genes_m6A_UP, fromType= "SYMBOL", toType= "ENTREZID", OrgDb = org.Dm.eg.db)
+genes_m6A_DOWN<- bitr(genes_m6A_DOWN, fromType= "SYMBOL", toType= "ENTREZID", OrgDb = org.Dm.eg.db)
+
+Cluster<- list (UP= genes_m6A_UP$ENTREZID, DOWN= genes_m6A_DOWN$ENTREZID)
+
+
+# Perform GO enrichment analysis for Biological Processes
+CompareCluster_BP <- compareCluster(geneCluster = Cluster, fun = "enrichGO",  
+                                    keyType= "ENTREZID", OrgDb='org.Dm.eg.db', ont="BP", pAdjustMethod = "BH", pvalueCutoff  = 0.01,
+                                    qvalueCutoff  = 0.05, readable=TRUE)
+CompareCluster_BP<-simplify(CompareCluster_BP, cutoff= 0.7)
+
+pdf("CompareCluster_BP_UPvsDOWN.pdf", 7, 5)
+dotplot(CompareCluster_BP)
+dev.off()
+
+
+# Perform GO enrichment analysis for Molecular Functions
+CompareCluster_MF <- compareCluster(geneCluster = Cluster, fun = "enrichGO",  
+                                    keyType= "ENTREZID", OrgDb='org.Dm.eg.db', ont="MF", pAdjustMethod = "BH", pvalueCutoff  = 0.01,
+                                    qvalueCutoff  = 0.05, readable=TRUE)
+CompareCluster_MF<-simplify(CompareCluster_MF, cutoff= 0.7)
+
+pdf("CompareCluster_MF_UPvsDOWN.pdf", 7, 5)
+dotplot(CompareCluster_MF)
+dev.off()
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Obtain the TSS coordinates of m6A enriched, nonenriched and depleted genes to plot Ime4 CUT&Tag signal over them for Figure 4E & Supplementary
+# Figure 5B; H3K4me3 CUT&Tag
+# signal over them for Figure 5C; GAF CUT&Tag signal for Figure 5F. Also obtain gene body coordinates for plotting H3K36me3 CUT&Tag for Figure 5C
+# and RNA PolII CUT&Tag signal for Figure 5G. The TSS and gene body coordinates were also used for calculating RNA PolII pausing in Figure 5H.
+
+getTSS <- function(x){
+  x<- x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  x<- promoters(x, upstream=1, downstream=1)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
+m6A_UP_TSS<-getTSS(m6A_UP)
+m6A_DOWN_TSS<-getTSS(m6A_DOWN)
+m6A_NO_TSS<-getTSS(m6A_NO)
+
+write.csv(m6A_UP_TSS, "m6A_UP_TSS.csv")
+write.csv(m6A_DOWN_TSS, "m6A_DOWN_TSS.csv")
+write.csv(m6A_NO_TSS, "m6A_NO_TSS.csv")
+
+
+getTSS_250 <- function(x){
+  x<- x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  x<- promoters(x, upstream=250, downstream=250)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
+m6A_UP_TSS_250<-getTSS(m6A_UP)
+m6A_DOWN_TSS_250<-getTSS(m6A_DOWN)
+m6A_NO_TSS_250<-getTSS(m6A_NO)
+
+write.csv(m6A_UP_TSS_250, "m6A_UP_TSS_250.csv")
+write.csv(m6A_DOWN_TSS_250, "m6A_DOWN_TSS_250.csv")
+write.csv(m6A_NO_TSS_250, "m6A_NO_TSS_250.csv")
+
+
+
+getFullLength <- function(x){
+  x<-x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
+
+m6A_UP_genebody<- getFullLength(m6A_UP)
+m6A_DOWN_genebody<- getFullLength(m6A_DOWN)
+m6A_NO_genebody<- getFullLength(m6A_NO)
+
+write.csv(m6A_UP_genebody, "m6A_UP_genebody.csv")
+write.csv(m6A_DOWN_genebody, "m6A_DOWN_genebody.csv")
+write.csv(m6A_NO_genebody, "m6A_NO_genebody.csv")
+
+# The promoter coordinates were obtained for m6A enriched and depleted transcripts. These were than used for motif analysis using MEME for
+# Supplementary Figure 5E
+
+getPromoter <- function(x){
+  x<- x
+  x<- makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+  x<- promoters(x, upstream=500, downstream=1)
+  seqlevelsStyle(x) <- "UCSC"
+  x<- as.data.frame(x)
+  return(x)
+}
+
+m6A_UP_promoter<-getPromoter(m6A_UP)
+m6A_DOWN_promoter<-getPromoter(m6A_DOWN)
+
+write.csv(m6A_UP_promoter, "m6A_UP_promoter.csv")
+write.csv(m6A_DOWN_promoter, "m6A_DOWN_promoter.csv")
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Plot the IgG and m6A signal for m6A enriched genes upon knockdown of Ime4 as a heatmap for Figure 4F
+# Start with opening up the read count tables
+
+featureCounts_controlRNAi_IgG_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_controlRNAi_IgG_n1.tabular", comment.char="#")[,c(1,7)]
+featureCounts_controlRNAi_m6A_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_controlRNAi_m6A_n1.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_METTL3RNAi_IgG_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_METTL3RNAi_IgG_n1.tabular", comment.char="#")[,c(1,7)]
+featureCounts_METTL3RNAi_m6A_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_METTL3RNAi_m6A_n1.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_controlRNAi_IgG_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_controlRNAi_IgG_n2.tabular", comment.char="#")[,c(1,7)]
+featureCounts_controlRNAi_m6A_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_controlRNAi_m6A_n2.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_METTL3RNAi_IgG_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_METTL3RNAi_IgG_n2.tabular", comment.char="#")[,c(1,7)]
+featureCounts_METTL3RNAi_m6A_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_METTL3RNAi_m6A_n2.tabular", comment.char="#")[,c(1,7)]
+
+
+# Setting up the metadata
+Counts_METTL3RNAi<- cbind(featureCounts_controlRNAi_IgG_n1[,2], featureCounts_controlRNAi_m6A_n1[,2], 
+               featureCounts_METTL3RNAi_IgG_n1[,2], featureCounts_METTL3RNAi_m6A_n1[,2],
+               featureCounts_controlRNAi_IgG_n2[,2], featureCounts_controlRNAi_m6A_n2[,2], 
+               featureCounts_METTL3RNAi_IgG_n2[,2], featureCounts_METTL3RNAi_m6A_n2[,2])
+
+colnames(Counts_METTL3RNAi)<-c("controlRNAi IgG n1", "controlRNAi m6A n1", 
+                    "METTL3RNAi IgG n1", "METTL3RNAi m6A n1", 
+                    "controlRNAi IgG n2", "controlRNAi m6A n2", 
+                    "METTL3RNAi IgG n2", "METTL3RNAi m6A n2")
+
+rownames(Counts_METTL3RNAi)<-featureCounts_whiteRNAi_IgG_n1[,1]
+Protein<- c("IgG", "m6A", "IgG", "m6A", "IgG", "m6A", "IgG", "m6A")
+
+Condition<- c("control RNAi", "control RNAi",  "METTL3 RNAi", "METTL3 RNAi", 
+              "control RNAi", "control RNAi",  "METTL3 RNAi", "METTL3 RNAi")
+Metadata<- cbind(Protein, Condition)
+rownames(Metadata)<- c("controlRNAi IgG n1", "controlRNAi m6A n1", 
+                       "METTL3RNAi IgG n1", "METTL3RNAi m6A n1", 
+                       "controlRNAi IgG n2", "controlRNAi m6A n2", 
+                       "METTL3RNAi IgG n2", "METTL3RNAi m6A n2")
+
+# Perform DESeq2 analysis and normalization
+
+Count_Table_METTL3RNAi <- DESeqDataSetFromMatrix(countData = Counts_METTL3RNAi, colData = Metadata,
+                                      design = ~ Protein + Condition)
+Count_Table_DESeq_METTL3RNAi<- DESeq(Count_Table_METTL3RNAi)
+Counts_normalized_METTL3RNAi<- cbind(gtf_df[,1:9],counts(Count_Table_DESeq_METTL3RNAi, normalized=TRUE))
+
+
+# Setting up a dataframe containing names of m6A enriched transcripts and then filling it out with IgG & m6A RT&Tag values
+# for white or Ime4 RNAi
+
+m6A_UP_METTL3<- Counts_normalized_METTL3RNAi[1:nrow(m6A_UP), 9:17]
+
+for (i in 1:nrow(m6A_UP_METTL3)){
+  m6A_UP_METTL3[i,]<-Counts_normalized_METTL3RNAi[Counts_normalized_METTL3RNAi$gene_name==m6A_UP$gene_name[i],9:17]
+}
+
+# Taking mean values of replicates
+
+IgG_controlRNAi<- vector(length=nrow(m6A_UP_METTL3))
+m6A_controlRNAi<- vector(length=nrow(m6A_UP_METTL3))
+IgG_METTL3RNAi<- vector(length=nrow(m6A_UP_METTL3))
+m6A_METTL3RNAi<- vector(length=nrow(m6A_UP_METTL3))
+
+m6A_UP_METTL3<- cbind(m6A_UP_METTL3, IgG_controlRNAi, m6A_controlRNAi, IgG_METTL3RNAi, m6A_METTL3RNAi)
+
+for (i in 1:nrow(m6A_UP_METTL3)){
+  m6A_UP_METTL3$IgG_controlRNAi[i] <- mean(c(m6A_UP_METTL3$`controlRNAi IgG n1`[i], m6A_UP_METTL3$`controlRNAi IgG n2`[i]))
+  m6A_UP_METTL3$m6A_controlRNAi[i] <- mean(c(m6A_UP_METTL3$`controlRNAi m6A n1`[i], m6A_UP_METTL3$`controlRNAi m6A n2`[i]))
+  m6A_UP_METTL3$IgG_METTL3RNAi[i] <- mean(c(m6A_UP_METTL3$`METTL3RNAi IgG n1`[i], m6A_UP_METTL3$`METTL3RNAi IgG n2`[i]))
+  m6A_UP_METTL3$m6A_METTL3RNAi[i] <- mean(c(m6A_UP_METTL3$`METTL3RNAi m6A n1`[i], m6A_UP_METTL3$`METTL3RNAi m6A n2`[i]))
+}
+
+
+# Getting ready for plotting 
+
+rownames(m6A_UP_METTL3) <- m6A_UP_METTL3$gene_name
+m6A_UP_METTL3 <- m6A_UP_METTL3[,-1]
+m6A_UP_METTL3 <- m6A_UP_METTL3[,9:12]
+m6A_UP_METTL3<- as.matrix(m6A_UP_METTL3)
+
+# Plotting the heatmap
+
+pdf("METTL3_RNAi.pdf", 10,10)
+heatmap.2(m6A_UP_METTL3, scale="row", Rowv=TRUE, Colv=FALSE, dendrogram="row", trace="none", col=bluered, 
+          key=TRUE, keysize= 1.5,  density.info = "none", names=" ")
+dev.off()
+
+
+# Calculating by how much the m6A enrichment is reduced upon knockdown of Ime4
+control_enrichment <- m6A_UP_METTL3[,2]/m6A_UP_METTL3[,1]
+mettl3_enrichment <- m6A_UP_METTL3[,4]/m6A_UP_METTL3[,3]
+
+m6A_UP_METTL3<- cbind(m6A_UP_METTL3, control_enrichment, mettl3_enrichment)
+
+ratio <- mettl3_enrichment/control_enrichment
+m6A_UP_METTL3 <- cbind(m6A_UP_METTL3, ratio)
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Using RNA-seq data to quantify expression levels of m6A enriched, non enriched and depleted transcripts for Figure 5B.
+
+# Open up RNA-seq data
+featureCounts_RNAseq_n1<- read.delim("~/PATH/featureCounts_S2_WC_RNAseq_n1.tabular", comment.char="#")[,c(1,7)]
+featureCounts_RNAseq_n2<- read.delim("~/PATH/featureCounts_S2_WC_RNAseq_n2.tabular", comment.char="#")[,c(1,7)]
+
+# Find the average of the RNA-seq counts
+RNAseq_merged<- cbind(gtf_df[,c(1:6,11,8:9)], featureCounts_RNAseq_n1[,2], featureCounts_RNAseq_n2[,2])
+average_CPM<- vector(length=nrow(RNAseq_merged))
+RNAseq_merged <- cbind(RNAseq_merged, average_CPM)
+
+for (i in 1:nrow(RNAseq_merged)){
+  RNAseq_merged$average_CPM[i]<- mean(RNAseq_merged$`featureCounts_RNAseq_n1[, 2]`[i], RNAseq_merged$`featureCounts_RNAseq_n2[, 2]`[i])
+}
+
+average_CPM <-vector(length=nrow(m6a_IgG_ALL))
+
+m6a_IgG_ALL<-cbind(m6a_IgG_ALL, average_CPM)
+
+for (i in 1:nrow(m6a_IgG_ALL)){
+  m6a_IgG_ALL[i,c(13)]<-RNAseq_merged$average_CPM[(m6a_IgG_ALL$gene_name[i]==RNAseq_merged$gene_name)]
+}
+
+Expression_UP<- m6a_IgG_ALL[(m6a_IgG_ALL$diffexpressed=="UP"),13]
+Expression_DOWN<- m6a_IgG_ALL[(m6a_IgG_ALL$diffexpressed=="DOWN"),13]
+Expression_NO<- m6a_IgG_ALL[(m6a_IgG_ALL$diffexpressed=="NO"),13]
+
+Expression_UP<- cbind(Expression_UP, "m6A Enriched")
+Expression_DOWN<- cbind(Expression_DOWN, "m6A Depleted")
+Expression_NO<- cbind(Expression_NO, "Nonenriched")
+
+expression<- as.data.frame(rbind( Expression_DOWN, Expression_UP, Expression_NO))
+colnames(expression)<- c("CPM", "type")
+expression$type <- as.factor(expression$type)
+expression$CPM <- as.numeric(expression$CPM)
+
+expression$type <- factor(expression$type, levels=c("m6A Enriched", "Nonenriched", "m6A Depleted"))
+
+expression_plot<- ggplot(expression, aes(x=type, y=CPM, fill=type)) +
+  geom_violin(width=1.4) +
+  geom_boxplot(width=0.1, color="black") +
+  scale_fill_viridis(discrete = TRUE) +
+  theme_minimal()+ 
+  ylim(0,6000)+
+  ylab("CPM") +
+  xlab("")
+
+expression_plot<- expression_plot +scale_fill_manual(values=c("red", "grey", "blue"))
+
+pdf("m6A_expression.pdf", 5, 5)
+expression_plot
+dev.off()
+
+mean(as.numeric(Expression_UP[,1]))
+# 191.9822
+
+mean(as.numeric(Expression_DOWN[,1]))
+# 4859.66
+
+t.test(as.numeric(Expression_UP[,1]), as.numeric(Expression_DOWN[,1]), paired = FALSE)
+# 6.19e-07
+
+t.test(as.numeric(Expression_NO[,1]), as.numeric(Expression_DOWN[,1]), paired = FALSE)
+# 3.367e-07
+
+t.test(as.numeric(Expression_UP[,1]), as.numeric(Expression_NO[,1]), paired = FALSE)
+# 1.344e-06
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Analyzing the IgG & m6A RT&Tag data for S2 cells that were either not heat shocked or received a heat shock. This is used for plotting Figure 5E
+
+# Start with opening up the read count tables 
+featureCounts_noHS_IgG_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_noHS_IgG_n1.tabular", comment.char="#")[,c(1,7)]
+featureCounts_noHS_m6A_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_noHS_m6A_n1.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_HS_IgG_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_HS_IgG_n1.tabular", comment.char="#")[,c(1,7)]
+featureCounts_HS_m6A_n1<- read.delim("~/PATH/featureCounts_S2_RT&Tag_HS_m6A_n1.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_noHS_IgG_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_noHS_IgG_n2.tabular", comment.char="#")[,c(1,7)]
+featureCounts_noHS_m6A_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_noHS_m6A_n2.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_HS_IgG_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_HS_IgG_n2.tabular", comment.char="#")[,c(1,7)]
+featureCounts_HS_m6A_n2<- read.delim("~/PATH/featureCounts_S2_RT&Tag_HS_m6A_n2.tabular", comment.char="#")[,c(1,7)]
+
+
+# Combining the read count tables and setting up the metadata
+Counts_HS<- cbind(featureCounts_noHS_IgG_n1[,2], featureCounts_noHS_m6A_n1[,2], featureCounts_HS_IgG_n1[,2], featureCounts_HS_m6A_n1[,2], 
+                  featureCounts_noHS_IgG_n2[,2], featureCounts_noHS_m6A_n2[,2], featureCounts_HS_IgG_n2[,2], featureCounts_HS_m6A_n2[,2])
+
+colnames(Counts_HS)<-c("noHS IgG n1", "noHS m6A n1", "HS IgG n1", "HS m6A n1", 
+                       "noHS IgG n2", "noHS m6A n2", "HS IgG n2", "HS m6A n2")
+
+rownames(Counts_HS)<-featureCounts_noHS_IgG_n1[,1]
+Protein<- c("IgG", "m6A", "IgG", "m6A", "IgG", "m6A", "IgG", "m6A")
+
+Condition<- c("noHS", "noHS", "HS", "HS", "noHS", "noHS", "HS", "HS")
+Metadata<- cbind(Protein, Condition)
+rownames(Metadata)<- c("noHS IgG n1", "noHS m6A n1", "HS IgG n1", "HS m6A n1", 
+                       "noHS IgG n2", "noHS m6A n2", "HS IgG n2", "HS m6A n2")
+
+
+# Performing DESeq2 normalization
+Count_Table_HS <- DESeqDataSetFromMatrix(countData = Counts_HS, colData = Metadata,
+                                         design = ~ Protein + Condition)
+Count_Table_DESeq_HS<- DESeq(Count_Table_HS)
+
+Counts_normalized_HS<- cbind(gtf_df[,1:9],counts(Count_Table_DESeq_HS, normalized=TRUE))
+
+# Mergining the read counts for the HSP70 genes and retrieving the read counts for HSP genes in general
+HSPs<- Counts_normalized_HS[grep("Hsp",Counts_normalized_HS$gene_name),9:17]
+Hsp70<- vector(length=8)
+HSPs<-rbind(Hsp70, HSPs)
+
+for (i in 2:ncol(HSPs)){
+  HSPs[1,i]<- sum(HSPs[(grep("Hsp70", HSPs$gene_name)),i])
+}
+
+HSPs[1,1]<- "Hsp70"
+HSPs<- HSPs[c(1,8:16),]
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Calculating the RNAPolII promoter proximal pausing index for Figure 5H
+
+# Start with opening up the RNAPolII signal levels within m6A enriched, nonenriched and depleted gene TSS and gene bodies
+
+UP_genebodies<- read.delim("~/PATH/METTL3_UP_genebody.tabular")
+DOWN_genebodies<- read.delim("~/PATH/METTL3_DOWN_genebody.tabular")
+NO_genebodies<- read.delim("~/PATH/METTL3_NO_genebody.tabular")
+
+UP_promoter<- read.delim("~/PATH/METTL3_UP_TSS.tabular")
+DOWN_promoter<- read.delim("~/PATH/METTL3_DOWN_TSS.tabular")
+NO_promoter<- read.delim("~/PATH/METTL3_NO_TSS.tabular")
+
+
+# Calculating the RNAPolII promoter proximal pausing index by dividing the TSS RNAPolII counts by that of the gene body
+UP_PPPI_polII<- UP_promoter$X.PolII./UP_genebodies$X.PolII.
+DOWN_PPPI_polII<- DOWN_promoter$X.PolII./DOWN_genebodies$X.PolII.
+NO_PPPI_polII<- NO_promoter$X.PolII./NO_genebodies$X.PolII.
+
+
+# Combining the data for plotting
+Type<- vector(length=269)
+UP_PPPI_polII<- as.data.frame(UP_PPPI_polII)
+UP_PPPI_polII<- cbind(UP_PPPI_polII, Type)
+UP_PPPI_polII$Type<- "m6A Enriched"
+colnames(UP_PPPI_polII)<-c("PPPI", "Type")
+
+
+Type<- vector(length=103)
+DOWN_PPPI_polII<- as.data.frame(DOWN_PPPI_polII)
+DOWN_PPPI_polII<- cbind(DOWN_PPPI_polII, Type)
+DOWN_PPPI_polII$Type<- "m6A Depleted"
+colnames(DOWN_PPPI_polII)<-c("PPPI", "Type")
+
+
+Type<- vector(length=12418)
+NO_PPPI_polII<- as.data.frame(NO_PPPI_polII)
+NO_PPPI_polII<- cbind(NO_PPPI_polII, Type)
+NO_PPPI_polII$Type<- "Nonenriched"
+colnames(NO_PPPI_polII)<-c("PPPI", "Type")
+
+
+polII<- rbind(UP_PPPI_polII, DOWN_PPPI_polII, NO_PPPI_polII)
+polII$Type <- factor(polII$Type, levels=c("m6A Enriched", "Nonenriched", "m6A Depleted"))
+
+
+# Plotting
+
+polII_graph<-ggplot(polII, aes(x=Type, y=PPPI, fill=Type)) +
+  geom_violin(width=1.4) +
+  geom_boxplot(width=0.1, color="black") +
+  theme_minimal() + 
+  scale_fill_viridis(discrete = TRUE) +
+  ylim(0,30) +
+  ggtitle("PolII Promoter Proximal Pausing Index") +
+  xlab("")
+
+polII_graph<- polII_graph +scale_fill_manual(values=c("red", "grey", "blue"))
+
+pdf("polII_PPPI.pdf", 5, 5)
+polII_graph
+dev.off()
+
+
+# Calculating the mean PPPI for different categories and performing statistical analysis
+mean(as.numeric(UP_PPPI_polII$PPPI), na.rm=TRUE)
+# 7.424406
+
+mean(as.numeric(NO_PPPI_polII$PPPI), na.rm=TRUE)
+# 2.139793
+
+mean(as.numeric(DOWN_PPPI_polII$PPPI), na.rm=TRUE)
+# 1.77991
+
+t.test(UP_PPPI_polII$PPPI, NO_PPPI_polII$PPPI, paired=FALSE)
+# < 2.2e-16
+
+t.test(UP_PPPI_polII$PPPI, DOWN_PPPI_polII$PPPI, paired=FALSE)
+# < 2.2e-16
+
+t.test(NO_PPPI_polII$PPPI, DOWN_PPPI_polII$PPPI, paired=FALSE)
+# 0.001339
+
+# Calculating the PPPI for HSP70's
+#HSP70
+336/146.12
+#2.29948
