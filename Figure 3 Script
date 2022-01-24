@@ -31,7 +31,7 @@ samtools sort -n K27me3_CT.bam -T K27me3_CT_sorted -o K27me3_CT_sorted.bam
 
 bedtools bamtobed -bedpe -i K27me3_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >K27me3_CT.1-1000.bed
 
-bedtools genomecov -i K27me3_CT.1-1000.bed -g /Users/nkhyzha/Documents/AnalysisTools/dm6.chrom.sizes.txt -bg >K27me3_CT.1-1000.bedgraph
+bedtools genomecov -i K27me3_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >K27me3_CT.1-1000.bedgraph
 
 bedGraphToBigWig K27me3_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes K27me3_CT.1-1000.bedgraph.bw
 
@@ -42,18 +42,14 @@ bedGraphToBigWig K27me3_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/golden
 
 computeMatrix scale-regions -S K27me3_CT.1-1000.bedgraph.bw -R K27me3_oligodT_genebody.txt NO_oligodT_genebody.txt -m 5000 -a 1000 -b 1000 --binSize 25 -out K27me3RTTag_K27me3_genebody.gz
 
-
 computeMatrix reference-point -S S2_CUT&Tag_H3K4me3.1-1000.bedgraph.bw -R K27me3_oligodT_TSS.txt NO_oligodT_TSS.txt -a 1000 -b 1000 --binSize 25  -out K27me3RTTag_K4me3_TSS.gz
-
 
 computeMatrix scale-regions -S S2_CUT&Tag_H3K36me3.1-1000.bedgraph.bw -R K27me3_oligodT_genebody.txt NO_oligodT_genebody.txt -m 5000 -a 1000 -b 1000 --binSize 25 -out K27me3RTTag_K36me3_genebody.gz
 
 
 plotProfile --matrixFile K27me3RTTag_K27me3_genebody.gz --colors red black --plotType se --startLabel TSS --endLabel TES --regionsLabel "K27me3 Enriched" "Nonenriched"  --samplesLabel K27me3 --yMin 0 --plotHeight 7 --plotWidth 10 --outFileName K27me3RTTag_K27me3_genebody.gz.pdf
 
-
 plotProfile --matrixFile K27me3RTTag_K4me3_TSS.gz --colors red black --plotType se --startLabel TSS --endLabel TES --regionsLabel "K27me3 Enriched" "Nonenriched"  --samplesLabel K4me3 --yMin 0 --plotHeight 7 --plotWidth 10 --outFileName K27me3RTTag_K4me3_TSS.gz.pdf
-
 
 plotProfile --matrixFile K27me3RTTag_K36me3_genebody.gz --colors red black --plotType se --startLabel TSS --endLabel TES --regionsLabel "K27me3 Enriched" "Nonenriched"  --samplesLabel K36me3 --yMin 0 --plotHeight 7 --plotWidth 10 --outFileName K27me3RTTag_K36me3_genebody.gz.pdf
 
@@ -64,7 +60,6 @@ plotProfile --matrixFile K27me3RTTag_K36me3_genebody.gz --colors red black --plo
 # Plotted in Supplementary Figure 4A
 
 computeMatrix scale-regions -S K27me3_CT.1-1000.bedgraph.bw -R top25_RNAseq.txt -m 5000 -a 1000 -b 1000 --binSize 25 -out Top25_K27me3_genebody.gz
-
 
 plotProfile --matrixFile Top25_K27me3_genebody.gz --colors black --plotType se --startLabel TSS --endLabel TES --regionsLabel "Background"  --samplesLabel K27me3 --yMin 0 --outFileName Top25_K27me3_genebody.gz.pdf
 
