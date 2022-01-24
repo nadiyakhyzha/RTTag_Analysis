@@ -1,0 +1,213 @@
+#!/bin/sh
+
+# Merging IgG and m6A RT&Tag replicate BAM files
+
+samtools merge IgG_RTTag.bam S2_RT&Tag_m6A_IgGcontrol_n1.bam S2_RT&Tag_m6A_IgGcontrol_n2.bam S2_RT&Tag_m6A_IgGcontrol_n3.bam 
+samtools merge m6A_RTTag.bam S2_RT&Tag_m6A_n1.bam S2_RT&Tag_m6A_n2.bam S2_RT&Tag_m6A_n3.bam 
+
+
+
+# Generating bigwig files for plotting
+
+samtools sort IgG_RTTag.bam -T IgG_RTTag_sorted -o IgG_RTTag_sorted.bam
+samtools sort m6A_RTTag.bam -T m6A_RTTag_sorted -o m6A_RTTag_sorted.bam
+
+samtools index IgG_RTTag_sorted.bam
+samtools index m6A_RTTag_sorted.bam
+
+bamCoverage --bam IgG_RTTag_sorted.bam -o IgG_RTTag.bw --normalizeUsing CPM
+bamCoverage --bam m6A_RTTag_sorted.bam -o m6A_RTTag.bw --normalizeUsing CPM
+
+
+
+# Merging IgG, METTL3, and PolII CUT&Tag replicate SAM files
+
+samtools merge IgG_CT.bam S2_CUT&Tag_IgG_n1.sam S2_CUT&Tag_IgG_n2.sam S2_CUT&Tag_IgG_n3.sam
+samtools merge METTL3_CT.bam S2_CUT&Tag_METTL3_n1.sam S2_CUT&Tag_METTL3_n2.sam S2_CUT&Tag_METTL3_n3.sam
+samtools merge PolII_CT.bam S2_CUT&Tag_RNAPolII_n1.sam S2_CUT&Tag_RNAPolII_n2.sam
+
+samtools sort -n IgG_CT.bam -T IgG_CT_sorted -o IgG_CT_sorted.bam
+samtools sort -n METTL3_CT.bam -T METTL3_CT_sorted -o METTL3_CT_sorted.bam
+samtools sort -n PolII_CT.bam -T PolII_CT_sorted -o PolII_CT_sorted.bam
+
+
+
+# Generating bigwig files which will be used for plotting Figure 4E, Supplementary 
+# Figure 5B and C, and Figure 5 A, C, F, G, H
+
+bedtools bamtobed -bedpe -i IgG_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >IgG_CT.1-1000.bed
+
+bedtools bamtobed -bedpe -i METTL3_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >METTL3_CT.1-1000.bed
+
+bedtools bamtobed -bedpe -i PolII_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >PolII_CT.1-1000.bed
+
+bedtools genomecov -i IgG_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >IgG_CT.1-1000.bedgraph
+bedtools genomecov -i METTL3_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >METTL3_CT.1-1000.bedgraph
+bedtools genomecov -i PolII_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >PolII_CT.1-1000.bedgraph
+
+
+bedGraphToBigWig IgG_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes IgG_CT.1-1000.bedgraph.bw
+bedGraphToBigWig METTL3_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes METTL3_CT.1-1000.bedgraph.bw
+bedGraphToBigWig PolII_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes PolII_CT.1-1000.bedgraph.bw
+
+
+
+
+# Merging IgG, METTL3, and PolII CUT&Tag replicate SAM files.
+# These are for S2 cells that either received no heat shock or received heat shock.
+
+samtools merge IgG_noHS_CT.bam S2_CUT&Tag_IgG_n1.sam S2_CUT&Tag_IgG_n2.sam
+samtools merge METTL3_noHS_CT.bam S2_CUT&Tag_METTL3_n1.sam S2_CUT&Tag_METTL3_n2.sam
+samtools merge PolII_noHS_CT.bam S2_CUT&Tag_RNAPolII_n1.sam S2_CUT&Tag_RNAPolII_n2.sam
+
+samtools merge IgG_HS_CT.bam S2_CUT&Tag_IgG_HS_n1.sam S2_CUT&Tag_IgG_HS_n2.sam
+samtools merge METTL3_HS_CT.bam S2_CUT&Tag_METTL3_HS_n1.sam S2_CUT&Tag_METTL3_HS_n2.sam
+samtools merge PolII_HS_CT.bam S2_CUT&Tag_RNAPolII_HS_n1.sam S2_CUT&Tag_RNAPolII_HS_n2.sam
+
+
+samtools sort -n IgG_noHS_CT.bam -T IgG_noHS_CT_sorted -o IgG_noHS_CT_sorted.bam
+samtools sort -n METTL3_noHS_CT.bam -T METTL3_noHS_CT_sorted -o METTL3_noHS_CT_sorted.bam
+samtools sort -n PolII_noHS_CT.bam -T PolII_noHS_CT_sorted -o PolII_noHS_CT_sorted.bam
+
+samtools sort -n IgG_HS_CT.bam -T IgG_HS_CT_sorted -o IgG_HS_CT_sorted.bam
+samtools sort -n METTL3_HS_CT.bam -T METTL3_HS_CT_sorted -o METTL3_HS_CT_sorted.bam
+samtools sort -n PolII_HS_CT.bam -T PolII_HS_CT_sorted -o PolII_HS_CT_sorted.bam
+
+
+
+
+# Generating the bigwig files for these. They are used for generating Figure 5D
+
+bedtools bamtobed -bedpe -i IgG_noHS_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >IgG_noHS_CT.1-1000.bed
+
+bedtools bamtobed -bedpe -i METTL3_noHS_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >METTL3_noHS_CT.1-1000.bed
+
+bedtools bamtobed -bedpe -i PolII_noHS_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >PolII_noHS_CT.1-1000.bed
+
+
+bedtools bamtobed -bedpe -i IgG_HS_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >IgG_HS_CT.1-1000.bed
+
+bedtools bamtobed -bedpe -i METTL3_HS_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >METTL3_HS_CT.1-1000.bed
+
+bedtools bamtobed -bedpe -i PolII_HS_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >PolII_HS_CT.1-1000.bed
+
+
+
+bedtools genomecov -i IgG_noHS_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >IgG_noHS_CT.1-1000.bedgraph
+bedtools genomecov -i METTL3_noHS_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >METTL3_noHS_CT.1-1000.bedgraph
+bedtools genomecov -i PolII_noHS_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >PolII_noHS_CT.1-1000.bedgraph
+
+
+bedtools genomecov -i IgG_HS_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >IgG_HS_CT.1-1000.bedgraph
+bedtools genomecov -i METTL3_HS_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >METTL3_HS_CT.1-1000.bedgraph
+bedtools genomecov -i PolII_HS_CT.1-1000.bed -g /PATH/dm6.chrom.sizes.txt -bg >PolII_HS_CT.1-1000.bedgraph
+
+
+
+bedGraphToBigWig IgG_noHS_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes IgG_noHS_CT.1-1000.bedgraph.bw
+bedGraphToBigWig METTL3_noHS_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes METTL3_noHS_CT.1-1000.bedgraph.bw
+bedGraphToBigWig PolII_noHS_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes PolII_noHS_CT.1-1000.bedgraph.bw
+
+
+bedGraphToBigWig IgG_HS_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes IgG_HS_CT.1-1000.bedgraph.bw
+bedGraphToBigWig METTL3_HS_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes METTL3_HS_CT.1-1000.bedgraph.bw
+bedGraphToBigWig PolII_HS_CT.1-1000.bedgraph http://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes PolII_HS_CT.1-1000.bedgraph.bw
+
+
+
+
+# Plotting the METTL3 CUT&Tag signal over the TSS of m6A Enriched, non enriched or 
+# depleted genes. Used in Figure 4E
+
+computeMatrix reference-point -S METTL3_CT.1-1000.bedgraph.bw -R m6A_UP_TSS.txt m6A_NO_TSS.txt m6A_DOWN_TSS.txt -a 1000 -b 1000 --binSize 25  -out METTL3_m6A_UPNODOWN.gz
+
+plotProfile --matrixFile METTL3_m6A_UPNODOWN.gz --colors red black blue --plotType se --startLabel TSS --endLabel TES --regionsLabel  "m6A Enriched" "Nonenriched" "m6A Depleted" --yMin 0 --samplesLabel METTL3 --outFileName METTL3_m6A_UPNODOWN.gz.pdf
+
+
+
+
+# Plotting the IgG and METTL3 CUT&Tag signal over the TSS of m6A depleted genes.
+# Used in Supplementary Figure 5B
+
+computeMatrix reference-point -S IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw -R m6A_DOWN_TSS.txt -a 1000 -b 1000 --binSize 25  -out IgG_METTL3_DOWN_TSS.gz
+
+plotProfile --matrixFile IgG_METTL3_DOWN_TSS.gz --colors black blue --startLabel TSS --endLabel TES --regionsLabel  "m6A Depleted" --yMin 0 --plotType se --samplesLabel IgG METTL3 --perGroup --outFileName IgG_METTL3_DOWN_TSS.gz.pdf
+
+
+
+
+# Plotting the METTL3 and RNA PolII CUT&Tag signal at the TSS of the top 25% expressed 
+# genes. Plotted in decreasing METTL3 signal order. Used in Figure 5A
+
+computeMatrix reference-point -S METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw  -R top25_RNAseq_TSS.txt -a 1000 -b 1000 --binSize 25  -out METTL3_polII_Correlation_top25_RNAseq_TSS.gz
+
+plotHeatmap --matrixFile METTL3_polII_Correlation_top25_RNAseq_TSS.gz --colorMap Reds --missingDataColor white --regionsLabel " "  --samplesLabel METTL3 PolII --sortUsingSamples 1 --outFileName METTL3_polII_Correlation_top25_RNAseq_TSS.gz.pdf
+
+
+
+
+# Plotting the correlation between METTL3 and RNA PolII signal. Used in 
+# Supplementary Figure 5C.
+
+multiBigwigSummary BED-file -b METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw  -o correlation_with_METTL3_TSS.npz -l METTL3 polII -bs 10000 --BED top25_RNAseq_TSS_500bp.bed
+
+plotCorrelation --corData correlation_with_METTL3_TSS.npz --corMethod pearson -p heatmap --removeOutliers --colorMap bwr --plotNumbers --plotFile correlation_with_METTL3_TSS.pdf
+
+
+
+
+
+# Plotting the K4me3 and K36me3 CUT&Tag signal over the TSS or gene bodies of m6A
+# enriched, non enriched or depleted genes. Used in Figure 5C
+
+computeMatrix reference-point -S KA_DmEc_1414_K4me3.1-1000.bedgraph.bw -R m6A_UP_TSS.txt m6A_NO_TSS.txt m6A_DOWN_TSS.txt -a 1000 -b 1000 --binSize 25  -out K4me3_m6A_UPNODOWN.gz
+
+computeMatrix scale-regions -S KA_DmEc_1417_K36me3.1-1000.bedgraph.bw -R m6A_UP_genebody.txt m6A_NO_genebody.txt m6A_DOWN_genebody.txt -m 4000 -a 1000 -b 1000  --binSize 25  -out K36me3_m6A_UPNODOWN.gz
+
+plotProfile --matrixFile K4me3_m6A_UPNODOWN.gz --colors red black blue --plotType se --startLabel TSS --endLabel TES --regionsLabel  "m6A Enriched" "Nonenriched" "m6A Depleted" --yMin 0 --samplesLabel K4me3 --outFileName K4me3_m6A_UPNODOWN.gz.pdf
+
+plotProfile --matrixFile K36me3_m6A_UPNODOWN.gz --colors red black blue --plotType se --startLabel TSS --endLabel TES --regionsLabel  "m6A Enriched" "Nonenriched" "m6A Depleted" --yMin 0 --samplesLabel K36me3 --outFileName K36me3_m6A_UPNODOWN.gz.pdf
+
+
+
+
+# Plotting the GAF CUT&Tag signal over the TSS  of m6A
+# enriched, non enriched or depleted genes. Used in Figure 5F
+
+computeMatrix reference-point -S KA_DmEc_1428_174.1-1000.bedgraph.bw -R m6A_UP_TSS.txt m6A_NO_TSS.txt m6A_DOWN_TSS.txt -a 1000 -b 1000 --binSize 25  -out GAF_m6A_UPNODOWN.gz
+
+plotProfile --matrixFile GAF_m6A_UPNODOWN.gz --colors red black blue --plotType se --startLabel TSS --endLabel TES --regionsLabel  "m6A Enriched" "Nonenriched" "m6A Depleted" --yMin 0 --samplesLabel GAF --outFileName GAF_m6A_UPNODOWN.gz.pdf
+
+
+
+
+
+# Plotting the RNAPolII CUT&Tag signal over the gene bodies of m6A
+# enriched, non enriched or depleted genes. Used in Figure 5G
+
+computeMatrix scale-regions -S PolII_CT.1-1000.bedgraph.bw -R m6A_UP_genebody.txt m6A_NO_genebody.txt m6A_DOWN_genebody.txt -m 4000 -a 1000 -b 1000  --binSize 25  -out PolII_m6A_UPNODOWN.gz
+
+plotProfile --matrixFile PolII_m6A_UPNODOWN.gz --colors red black blue --plotType se --startLabel TSS --endLabel TES --regionsLabel  "m6A Enriched" "Nonenriched" "m6A Depleted" --yMin 0 --samplesLabel PolII --outFileName PolII_m6A_UPNODOWN.gz.pdf
+
+
+
+
+
+# Quantifying the IgG, METTL3, and RNA PolII CUT&Tag signal at the TSS or the gene bodies
+# of m6A enriched, non enriched, and depleted genes. These values will than be used to
+# quantify the RNA polymerase II pausing index for Figure 5H
+
+multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_UP_TSS_250.bed -o METTL3_UP_TSS_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_UP_TSS.tab
+
+multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_UP_genebody.bed -o METTL3_UP_genebody_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_UP_genebody.tab
+ 
+
+multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_DOWN_TSS_250.bed -o METTL3_DOWN_TSS_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_DOWN_TSS.tab
+
+multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_DOWN_genebody.bed -o METTL3_DOWN_genebody_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_DOWN_genebody.tab
+ 
+
+multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_NO_TSS_250.bed -o METTL3_NO_TSS_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_NO_TSS.tab
+ 
+multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_NO_genebody.bed -o METTL3_NO_genebody_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_NO_genebody.tab
+
