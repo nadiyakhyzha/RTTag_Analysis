@@ -245,7 +245,7 @@ top25_RNAseq_TSS <- getTSS(top25_RNAseq)
 top25_RNAseq_TSS_250 <-getTSS_250(top25_RNAseq)
 
 write.csv(top25_RNAseq_TSS, "top25_RNAseq_TSS.csv")
-write.csv(top25_RNAseq_TSS_250, "top25_RNAseq_TSS_250.csv")
+write.csv(top25_RNAseq_TSS_250, "top25_RNAseq_TSS_500bp.csv")
 
 #-----------------------------------------------------------------------------------------------------------------------------------
 
