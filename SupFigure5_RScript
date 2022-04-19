@@ -1,0 +1,89 @@
+# Open up the count table which was obtain from GEO GSE143455 Publication.
+
+RIPseq <- read_excel("~/PATH/eMLE_vs_eInput_RIPseq_Counts.xlsx")
+
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
+# Generating the Volcano Plot in Supplementary Figure 5A.
+
+# Mark transcripts as enriched, nonenriched, and depleted
+
+for (i in 1:nrow(RIPseq)){
+  if ((RIPseq$log2FoldChange[i]>=1)&(RIPseq$padj[i]<=0.05)){
+    RIPseq$gene_id[i]<-"UP"
+  } else if ((RIPseq$log2FoldChange[i]<=-1)&(RIPseq$padj[i]<=0.05)){
+    RIPseq$gene_id[i]<-"DOWN"
+  }
+  else {
+    RIPseq$gene_id[i]<-"NO"
+  }  
+}
+
+
+mycolors <- c("blue", "red", "black")
+names(mycolors) <- c("DOWN", "UP", "NO")
+
+
+RIPseq$delabel <- NA
+
+for (i in 1:nrow(RIPseq)){
+  if (RIPseq$gene_id[i]!=("NO")){
+    RIPseq$delabel[i] <- RIPseq$symbol[i]
+  }
+}
+
+#Plot the volcano plot
+library(ggplot2)
+
+p <- ggplot(data=RIPseq, aes(x=log2FoldChange, y=-log10(padj), col=gene_id , label=delabel)) + geom_point(size=2) + theme_minimal() + geom_text (size=4, nudge_y = 2) + 
+  geom_vline(xintercept=c(-1, 1), col="black") +
+  geom_hline(yintercept=-log10(0.05), col="black") +
+  theme(text = element_text(size = 20)) 
+p2 <- p + scale_colour_manual(values = mycolors)
+
+
+pdf("eMLE_RIPseq_VolcanoPlot.pdf", 7,5)
+p2
+dev.off()
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
+# Generating the Venn Diagram in Supplementary Figure 5C.
+
+# Open up the list of MSL2 enriched transcripts
+MSL2_UP <- read.csv("~/PATH/MSL2_UP_genebody.csv")
+
+# Retrieving the list of MLE RIP-seq enriched transcripts
+MLE_UP <- RIPseq[RIPseq$gene_id=="UP", ]
+
+# Making the gene names consistent between the two datasets by removing the lncRNA portion of the name
+MSL2_UP_names <- MSL2_UP$gene_name
+MSL2_UP_names <- sapply(lapply(strsplit(MSL2_UP_names, "lncRNA:"), rev), paste, collapse = "")
+
+MLE_UP_names <- MLE_UP$symbol
+
+# Plot the venn diagram
+library(VennDiagram)
+
+test<- venn.diagram(
+  x = list(MSL2_UP_names,  MLE_UP_names),
+  category.names = c("RT&Tag" , "RIP-seq"),
+  filename = 'venn_diagramm_MSL2vsMLE.pdf',
+  output=TRUE
+)
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
+# Plotting the Pie Charts showing chromosomal distribution of MSL2 RT&Tag and MLE RIP-seq unique transcripts 
+
+MSL2_UP_withoutrox<- MSL2_UP[((MSL2_UP$gene_name != "lncRNA:roX2")&(MSL2_UP$gene_name != "lncRNA:roX1")),]
+MLE_UP_withoutrox<- MLE_UP[((MLE_UP$symbol != "roX2")&(MLE_UP$symbol != "roX1"))&(MLE_UP$symbol != "NA"),]
+
+
+pdf("MSL2_unique_Chromosomes.pdf", 5,5)
+pie(table(MSL2_UP_withoutrox$seqnames))
+dev.off()
+
+
+pdf("MLE_unique_Chromosomes.pdf", 5,5)
+pie(table(MLE_UP_withoutrox$chr))
+dev.off()
