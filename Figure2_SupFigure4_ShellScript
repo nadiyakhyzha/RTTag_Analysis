@@ -12,7 +12,7 @@ samtools index IgG_RTTag_sorted.bam
 samtools index MSL2_RTTag_sorted.bam
 
 
-# Generate bigwig files that are used for generating Figure 2G and Supplementary Figure 3
+# Generate bigwig files that are used for generating Figure 2G and Supplementary Figure 4B
 
 bamCoverage --bam IgG_RTTag_sorted.bam -o IgG_RTTag.bw --normalizeUsing CPM
 bamCoverage --bam MSL2_RTTag_sorted.bam -o MSL2_RTTag.bw --normalizeUsing CPM
