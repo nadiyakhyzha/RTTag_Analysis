@@ -1,1 +1,169 @@
+#Opening up the necessary packages and opening the GTF file. 
 
+library(rtracklayer)
+library(DESeq2)
+library(ggplot2)
+
+gtf<- import("~/PATH/Drosophila_melanogaster.BDGP6.28.47.gtf")
+gtf_df<-as.data.frame(gtf)
+gtf_df<-(gtf_df[gtf_df$type=="gene",])[,c(1:7,10:13)]
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Opening up all of the readcount tables
+
+featureCounts_IgG_100k_n1<- read.delim("~/PATH/featureCounts_NK_dm_1181.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_100k_n1<- read.delim("~/PATH/featureCounts_NK_dm_1182.tabular", comment.char="#")[,c(1,7)]
+featureCounts_m6A_100k_n1<- read.delim("~/PATH/featureCounts_NK_dm_1183.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_25k_n1<- read.delim("~/PATH/featureCounts_NK_dm_1184.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_25k_n1<- read.delim("~/PATH/featureCounts_NK_dm_1185.tabular", comment.char="#")[,c(1,7)]
+featureCounts_m6A_25k_n1<- read.delim("~/PATH/featureCounts_NK_dm_1186.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_5k_n1<- read.delim("~/PATH/featureCounts_NK_dm_1187.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_5k_n1<- read.delim("~/PATH/featureCounts_NK_dm_1188.tabular", comment.char="#")[,c(1,7)]
+featureCounts_m6A_5k_n1<- read.delim("~/PATH/featureCounts_NK_dm_1189.tabular", comment.char="#")[,c(1,7)]
+
+
+featureCounts_IgG_100k_n2<- read.delim("~/PATH/featureCounts_NK_dm_1201.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_100k_n2<- read.delim("~/PATH/featureCounts_NK_dm_1202.tabular", comment.char="#")[,c(1,7)]
+featureCounts_m6A_100k_n2<- read.delim("~/PATH/featureCounts_NK_dm_1203.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_25k_n2<- read.delim("~/PATH/featureCounts_NK_dm_1204.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_25k_n2<- read.delim("~/PATH/featureCounts_NK_dm_1205.tabular", comment.char="#")[,c(1,7)]
+featureCounts_m6A_25k_n2<- read.delim("~/PATH/featureCounts_NK_dm_1206.tabular", comment.char="#")[,c(1,7)]
+
+featureCounts_IgG_5k_n2<- read.delim("~/PATH/featureCounts_NK_dm_1207.tabular", comment.char="#")[,c(1,7)]
+featureCounts_K27me3_5k_n2<- read.delim("~/PATH/featureCounts_NK_dm_1208.tabular", comment.char="#")[,c(1,7)]
+featureCounts_m6A_5k_n2<- read.delim("~/PATH/featureCounts_NK_dm_1209.tabular", comment.char="#")[,c(1,7)]
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Putting all of the count tables together
+
+Counts<- cbind(featureCounts_IgG_100k_n1[,2], featureCounts_K27me3_100k_n1[,2],  featureCounts_m6A_100k_n1[,2], 
+               featureCounts_IgG_25k_n1[,2], featureCounts_K27me3_25k_n1[,2],  featureCounts_m6A_25k_n1[,2], 
+               featureCounts_IgG_5k_n1[,2], featureCounts_K27me3_5k_n1[,2],  featureCounts_m6A_5k_n1[,2], 
+               featureCounts_IgG_100k_n2[,2], featureCounts_K27me3_100k_n2[,2],  featureCounts_m6A_100k_n2[,2], 
+               featureCounts_IgG_25k_n2[,2], featureCounts_K27me3_25k_n2[,2],  featureCounts_m6A_25k_n2[,2], 
+               featureCounts_IgG_5k_n2[,2], featureCounts_K27me3_5k_n2[,2],  featureCounts_m6A_5k_n2[,2])
+
+
+colnames(Counts)<-c("IgG 100k n1", "K27me3 100k n1",   "m6A 100k n1",  
+                    "IgG 25k n1", "K27me3 25k n1",   "m6A 25k n1",
+                    "IgG 5k n1", "K27me3 5k n1",   "m6A 5k n1",
+                    "IgG 100k n2", "K27me3 100k n2",   "m6A 100k n2",  
+                    "IgG 25k n2", "K27me3 25k n2",   "m6A 25k n2",
+                    "IgG 5k n2", "K27me3 5k n2",   "m6A 5k n2")
+
+rownames(Counts)<-featureCounts_IgG_100k_n1[,1]
+Protein<- c("IgG", "K27me3", "m6A", "IgG", "K27me3", "m6A", "IgG", "K27me3", "m6A",
+            "IgG", "K27me3", "m6A", "IgG", "K27me3", "m6A", "IgG", "K27me3", "m6A")
+
+Condition<- c("100k", "100k", "100k", "25k", "25k", "25k", "5k", "5k", "5k", 
+              "100k", "100k", "100k", "25k", "25k", "25k", "5k", "5k", "5k")
+Metadata<- cbind(Protein, Condition)
+rownames(Metadata)<- c("IgG 100k n1", "K27me3 100k n1",   "m6A 100k n1",  
+                       "IgG 25k n1", "K27me3 25k n1",   "m6A 25k n1",
+                       "IgG 5k n1", "K27me3 5k n1",   "m6A 5k n1",
+                       "IgG 100k n2", "K27me3 100k n2",   "m6A 100k n2",  
+                       "IgG 25k n2", "K27me3 25k n2",   "m6A 25k n2",
+                       "IgG 5k n2", "K27me3 5k n2",   "m6A 5k n2")
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Perform normalization
+
+Count_Table <- DESeqDataSetFromMatrix(countData = Counts, colData = Metadata,
+                                      design = ~ Protein + Condition)
+Count_Table_DESeq<- DESeq(Count_Table)
+
+Counts_normalized<- cbind(gtf_df[,c(1:6,11,8:9)],counts(Count_Table_DESeq, normalized=TRUE))
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Retrieving the read counts for hox genes. This data is used for generating Supplementary Figure 6C
+
+hox_genes_names<- c("lab", "pb", "zen", "bcd", "Dfd", "Scr", "ftz", "Antp", "Ubx", "abd-A", "lncRNA:iab4", "lncRNA:iab8","Abd-B")
+hox_genes<-matrix(nrow=length(hox_genes_names), ncol=18)
+hox_genes<- as.data.frame(hox_genes)
+
+for (i in 1:length(hox_genes_names)){
+  hox_genes[i,1:18]<- Counts_normalized[Counts_normalized$gene_name==hox_genes_names[i],10:27]
+}
+
+colnames(hox_genes)<-colnames(Counts_normalized[,10:27])
+hox_genes_IgG_K27me3<-hox_genes
+rownames(hox_genes_IgG_K27me3)<-hox_genes_names
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Plotting the IgG and H3K27me3 RT&Tag signal over previously identified H3K27me3 enriched transcripts.
+
+# Opening up the list of preciously identified H3K27me3 enriched transcripts
+
+K27me3_UP <- read.delim("~/PATH/K27me3_oligodT_TSS.txt", header=FALSE)
+K27me3_UP <- K27me3_UP[-913,]
+K27me3_oligodT <- data.frame(K27me3_UP$V4, Counts_normalized[1:nrow(K27me3_UP), 10:27])
+
+for (i in 1:nrow(K27me3_oligodT)){
+  K27me3_oligodT[i,2:19]<- Counts_normalized[Counts_normalized$gene_name==K27me3_oligodT$K27me3_UP.V4[i], 10:27]
+}
+
+# Fill out the dataframe
+
+IgG_100k<-sapply(1:nrow(K27me3_oligodT), function(i) mean(K27me3_oligodT$IgG.100k.n1[i], K27me3_oligodT$IgG.100k.n2[i]))
+IgG_25k<-sapply(1:nrow(K27me3_oligodT), function(i) mean(K27me3_oligodT$IgG.25k.n1[i], K27me3_oligodT$IgG.25k.n2[i]))
+IgG_5k<-sapply(1:nrow(K27me3_oligodT), function(i) mean(K27me3_oligodT$IgG.5k.n1[i], K27me3_oligodT$IgG.5k.n2[i]))
+
+K27me3_100k<-sapply(1:nrow(K27me3_oligodT), function(i) mean(K27me3_oligodT$K27me3.100k.n1[i], K27me3_oligodT$K27me3.100k.n2[i]))
+K27me3_25k<-sapply(1:nrow(K27me3_oligodT), function(i) mean(K27me3_oligodT$K27me3.25k.n1[i], K27me3_oligodT$K27me3.25k.n2[i]))
+K27me3_5k<-sapply(1:nrow(K27me3_oligodT), function(i) mean(K27me3_oligodT$K27me3.5k.n1[i], K27me3_oligodT$K27me3.5k.n2[i]))
+
+K27me3_dataframe<- data.frame(K27me3_oligodT$K27me3_UP.V4 ,IgG_100k, K27me3_100k, IgG_25k, K27me3_25k, IgG_5k, K27me3_5k)
+
+rownames(K27me3_dataframe) <- K27me3_dataframe$K27me3_oligodT.K27me3_UP.V4
+K27me3_dataframe <- K27me3_dataframe[,-1]
+K27me3_dataframe<- as.matrix(K27me3_dataframe)
+
+# Plot IgG and H3K27me3 RT&Tag signal with 100k and 25k nuclei. This is used for Supplementary Figure 6A
+
+K27me3_dataframe_no5k<- K27me3_dataframe[,1:4]
+
+pdf("K27me3_nucleinumbers_no5k_heatmap.pdf", 10,10)
+heatmap.2(K27me3_dataframe_no5k, scale="row", Rowv=TRUE, Colv=FALSE, dendrogram="row", trace="none", col=bluered, density.info = "none", names="")
+dev.off()
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Plotting the IgG and m6A RT&Tag signal over previously identified m6A enriched transcripts.
+
+# Opening up the list of preciously identified m6A enriched transcripts
+
+m6A_UP <- read.csv("~/PATH/m6A_UP_TSS.csv")
+
+m6A_oligodT<- data.frame(m6A_UP$gene_name, Counts_normalized[1:nrow(m6A_UP), 10:27])
+
+for (i in 1:nrow(m6A_oligodT)){
+  m6A_oligodT[i,2:19]<-Counts_normalized[Counts_normalized$gene_name==m6A_oligodT$m6A_UP.gene_name[i],10:27]
+}
+
+# Fill out the dataframe
+
+IgG_100k<-sapply(1:nrow(m6A_oligodT), function(i) mean(m6A_oligodT$IgG.100k.n1[i], m6A_oligodT$IgG.100k.n2[i]))
+IgG_25k<-sapply(1:nrow(m6A_oligodT), function(i) mean(m6A_oligodT$IgG.25k.n1[i], m6A_oligodT$IgG.25k.n2[i]))
+IgG_5k<-sapply(1:nrow(m6A_oligodT), function(i) mean(m6A_oligodT$IgG.5k.n1[i], m6A_oligodT$IgG.5k.n2[i]))
+
+m6A_100k<-sapply(1:nrow(m6A_oligodT), function(i) mean(m6A_oligodT$m6A.100k.n1[i], m6A_oligodT$m6A.100k.n2[i]))
+m6A_25k<-sapply(1:nrow(m6A_oligodT), function(i) mean(m6A_oligodT$m6A.25k.n1[i], m6A_oligodT$m6A.25k.n2[i]))
+m6A_5k<-sapply(1:nrow(m6A_oligodT), function(i) mean(m6A_oligodT$m6A.5k.n1[i], m6A_oligodT$m6A.5k.n2[i]))
+
+m6A_dataframe<- data.frame(m6A_oligodT$m6A_UP.gene_name ,IgG_100k, m6A_100k, IgG_25k, m6A_25k, IgG_5k, m6A_5k)
+
+rownames(m6A_dataframe) <- m6A_dataframe$m6A_oligodT.m6A_UP.gene_name
+m6A_dataframe <- m6A_dataframe[,-1]
+m6A_dataframe<- as.matrix(m6A_dataframe)
+
+
+
+# Plot IgG and m6A RT&Tag signal with 100k and 25k nuclei. This is used for Supplementary Figure 8A
+
+m6A_dataframe_no5k<- m6A_dataframe[,1:4]
+
+pdf("m6A_nucleinumbers_no5k_heatmap.pdf", 10,10)
+heatmap.2(m6A_dataframe_no5k, scale="row", Rowv=TRUE, Colv=FALSE, dendrogram="row", trace="none", col=bluered, density.info = "none", names="")
+dev.off()
