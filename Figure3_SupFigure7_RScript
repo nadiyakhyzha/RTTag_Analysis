@@ -124,6 +124,27 @@ pdf("K27me3_codingnoncoding_distribution.pdf", 2, 4)
 barplot(c(1178, (157+1+4+2+1)), col= "red", ylab= "Number of transcripts", names= c("protein coding", "noncoding"))
 dev.off()
 
+#-----------------------------------------------------------------------------------------------------------------------------------
+# The following was used for generating the GO enrichment dotplot for Supplementary Figure 7A
+library(clusterProfiler)
+library(org.Dm.eg.db)
+
+# Retrieving the gene names for H3K27me3 enriched transcripts
+
+genes_K27me3_UP<-K27me3_oligodT_UP$gene_name
+
+# Convert gene names from "Symbol" to "EntrezID"
+
+genes_K27me3_UP<- bitr(genes_K27me3_UP, fromType= "SYMBOL", toType= "ENTREZID", OrgDb = org.Dm.eg.db)
+
+# Perform GO enrichment analysis for Biological Processes
+CompareCluster_BP <- enrichGO(gene = genes_K27me3_UP$ENTREZID, 
+                                    keyType= "ENTREZID", OrgDb='org.Dm.eg.db', ont="BP", pAdjustMethod = "BH", pvalueCutoff  = 0.01,
+                                    qvalueCutoff  = 0.05, readable=TRUE)
+
+pdf("CompareCluster_BP_K27me3.pdf", 7, 5)
+dotplot(CompareCluster_BP)
+dev.off()
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # The following was used for generating the boxplot for Figure 3E
@@ -180,7 +201,7 @@ for (i in 1:length(hox_genes_names)){
 write.csv(hox_genes_oligodT, "hox_genes_oligodT.csv")
 
 #-----------------------------------------------------------------------------------------------------------------------------------
-# Calculate the CPM for the top 25% of expressed genes. This is used for determining the background K27me3 levels in Supplementary Figure 4A
+# Calculate the CPM for the top 25% of expressed genes. This is used for determining the background K27me3 levels in Supplementary Figure 7B
 17807/4
 # 4451.75
 
@@ -191,7 +212,6 @@ top25_RNAseq<- RNAseq_merged[(RNAseq_merged$average_CPM >= 17),]
 write.csv(top25_RNAseq, "top25_RNAseq.csv")
 
 #-----------------------------------------------------------------------------------------------------------------------------------
-
 # Extracting the coordinates of K27me3 enriched or nonenriched transcripts for plotting in Figure 3F &H
 
 # Function for obtaining the TSS coordinates
@@ -248,9 +268,8 @@ write.csv(top25_RNAseq_TSS, "top25_RNAseq_TSS.csv")
 write.csv(top25_RNAseq_TSS_250, "top25_RNAseq_TSS_500bp.csv")
 
 #-----------------------------------------------------------------------------------------------------------------------------------
-
 # Calculating the CPM of K27me3 RT&Tag enriched transcripts that are transcribed from regions of high or low K27me3 levels.
-# This is used for Supplementary Figure 4B
+# This is used for Supplementary Figure 7C
 
 K27me3_oligodT_genebody_under9 <- read.csv("~/PATH/K27me3_oligodT_genebody_under9.csv", header=FALSE)[-1,]
 K27me3_oligodT_genebody_over9 <- read.csv("~/PATH/K27me3_oligodT_genebody_over9.csv", header=FALSE)[-1,]
