@@ -27,7 +27,7 @@ samtools sort -n K27me3_CT.bam -T K27me3_CT_sorted -o K27me3_CT_sorted.bam
 
 
 
-# Generating bigwig files that are used for plotting Figure 3F, H, and Supplementary Figure 4A
+# Generating bigwig files that are used for plotting Figure 3F, H, and Supplementary Figure 7B
 
 bedtools bamtobed -bedpe -i K27me3_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >K27me3_CT.1-1000.bed
 
@@ -57,7 +57,7 @@ plotProfile --matrixFile K27me3RTTag_K36me3_genebody.gz --colors red black --plo
 
 
 # Calculating the background K27me3 levels as the K27me3 CUT&Tag signal over the gene bodies of the top 25% expressed genes.
-# Plotted in Supplementary Figure 4A
+# Plotted in Supplementary Figure 7B
 
 computeMatrix scale-regions -S K27me3_CT.1-1000.bedgraph.bw -R top25_RNAseq.txt -m 5000 -a 1000 -b 1000 --binSize 25 -out Top25_K27me3_genebody.gz
 
