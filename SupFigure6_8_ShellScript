@@ -1,0 +1,56 @@
+#!/bin/sh
+
+# Make bigwig files for visualization of RT&Tag data for Supplementary Figure 6 and 8
+
+samtools merge IgG_100k.bam S2_RT&Tag_IgG_100knuclei_n1.bam S2_RT&Tag_IgG_100knuclei_n2.bam 
+samtools merge K27me3_100k.bam S2_RT&Tag_H3K27me3_100knuclei_n1.bam S2_RT&Tag_H3K27me3_100knuclei_n2.bam 
+samtools merge m6A_100k.bam S2_RT&Tag_m6A_100knuclei_n1.bam S2_RT&Tag_m6A_100knuclei_n2.bam 
+
+samtools merge IgG_25k.bam S2_RT&Tag_IgG_25knuclei_n1.bam S2_RT&Tag_IgG_25knuclei_n2.bam 
+samtools merge K27me3_25k.bam S2_RT&Tag_H3K27me3_25knuclei_n1.bam S2_RT&Tag_H3K27me3_25knuclei_n2.bam 
+samtools merge m6A_25k.bam S2_RT&Tag_m6A_25knuclei_n1.bam S2_RT&Tag_m6A_25knuclei_n2.bam 
+
+samtools merge IgG_5k.bam S2_RT&Tag_IgG_5knuclei_n1.bam S2_RT&Tag_IgG_5knuclei_n2.bam 
+samtools merge K27me3_5k.bam S2_RT&Tag_H3K27me3_5knuclei_n1.bam S2_RT&Tag_H3K27me3_5knuclei_n2.bam  
+samtools merge m6A_5k.bam S2_RT&Tag_m6A_5knuclei_n1.bam S2_RT&Tag_m6A_5knuclei_n2.bam 
+
+
+
+samtools sort IgG_100k.bam -T IgG_100k_sorted -o IgG_100k_sorted.bam
+samtools sort K27me3_100k.bam -T K27me3_100k_sorted -o K27me3_100k_sorted.bam
+samtools sort m6A_100k.bam -T m6A_100k_sorted -o m6A_100k_sorted.bam
+
+samtools sort IgG_25k.bam -T IgG_25k_sorted -o IgG_25k_sorted.bam
+samtools sort K27me3_25k.bam -T K27me3_25k_sorted -o K27me3_25k_sorted.bam
+samtools sort m6A_25k.bam -T m6A_25k_sorted -o m6A_25k_sorted.bam
+
+samtools sort IgG_5k.bam -T IgG_5k_sorted -o IgG_5k_sorted.bam
+samtools sort K27me3_5k.bam -T K27me3_5k_sorted -o K27me3_5k_sorted.bam
+samtools sort m6A_5k.bam -T m6A_5k_sorted -o m6A_5k_sorted.bam
+
+
+samtools index IgG_100k_sorted.bam
+samtools index K27me3_100k_sorted.bam
+samtools index m6A_100k_sorted.bam
+
+samtools index IgG_25k_sorted.bam
+samtools index K27me3_25k_sorted.bam
+samtools index m6A_25k_sorted.bam
+
+samtools index IgG_5k_sorted.bam
+samtools index K27me3_5k_sorted.bam
+samtools index m6A_5k_sorted.bam
+
+
+
+bamCoverage --bam IgG_100k_sorted.bam -o IgG_100k.bw --normalizeUsing CPM
+bamCoverage --bam K27me3_100k_sorted.bam -o K27me3_100k.bw --normalizeUsing CPM
+bamCoverage --bam m6A_100k_sorted.bam -o m6A_100k.bw --normalizeUsing CPM
+
+bamCoverage --bam IgG_25k_sorted.bam -o IgG_25k.bw --normalizeUsing CPM
+bamCoverage --bam K27me3_25k_sorted.bam -o K27me3_25k.bw --normalizeUsing CPM
+bamCoverage --bam m6A_25k_sorted.bam -o m6A_25k.bw --normalizeUsing CPM
+
+bamCoverage --bam IgG_5k_sorted.bam -o IgG_5k.bw --normalizeUsing CPM
+bamCoverage --bam K27me3_5k_sorted.bam -o K27me3_5k.bw --normalizeUsing CPM
+bamCoverage --bam m6A_5k_sorted.bam -o m6A_5k.bw --normalizeUsing CPM
