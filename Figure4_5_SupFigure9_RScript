@@ -342,7 +342,8 @@ m6A_UP_METTL3 <- cbind(m6A_UP_METTL3, ratio)
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------
-# Using RNA-seq data to quantify expression levels of m6A enriched, non enriched and depleted transcripts for Figure 5B.
+# Using RNA-seq data to quantify expression levels of m6A enriched, non enriched and depleted transcripts for Figure 5B. Also later used
+# for subdiving m6A enriched transcripts into quartiles for Supplementary Figure 9F. 
 
 # Open up RNA-seq data
 featureCounts_RNAseq_n1<- read.delim("~/PATH/featureCounts_S2_WC_RNAseq_n1.tabular", comment.char="#")[,c(1,7)]
@@ -409,6 +410,55 @@ t.test(as.numeric(Expression_NO[,1]), as.numeric(Expression_DOWN[,1]), paired = 
 
 t.test(as.numeric(Expression_UP[,1]), as.numeric(Expression_NO[,1]), paired = FALSE)
 # 1.344e-06
+
+
+# Break up m6A enriched transcripts based on expression quantiles
+quantile(Expression_UP$average_CPM)
+#0%  25%  50%  75% 100% 
+#6   46   91  195 5159 
+
+m6A_1st<- Expression_UP[Expression_UP$average_CPM>=195,]
+m6A_2nd<- Expression_UP[(Expression_UP$average_CPM>=91)&(Expression_UP$average_CPM<195),]
+m6A_3rd<- Expression_UP[(Expression_UP$average_CPM>46)&(Expression_UP$average_CPM<91),]
+m6A_4th<- Expression_UP[Expression_UP$average_CPM<=46,]
+
+# Generate TSS and genebody coordinate files
+
+m6A_1st_TSS_250<-getTSS_250(m6A_1st)
+m6A_2nd_TSS_250<-getTSS_250(m6A_2nd)
+m6A_3rd_TSS_250<-getTSS_250(m6A_3rd)
+m6A_4th_TSS_250<-getTSS_250(m6A_4th)
+
+m6A_1st_genebody<-getFullLength(m6A_1st)
+m6A_2nd_genebody<-getFullLength(m6A_2nd)
+m6A_3rd_genebody<-getFullLength(m6A_3rd)
+m6A_4th_genebody<-getFullLength(m6A_4th)
+
+# The following function is to save the dataframe in bed format",
+saveBed = function(x){
+  #save file name
+  file = deparse(substitute(x))
+  file = paste(file,".txt", sep = "")
+  #remove nonchromosomal postions
+  x <- x[grep("chr", x$seqnames),]
+  #rearrange columns in bed format, sort rows, and remove header
+  x = x[ , c(1, 2, 3, 4, 9, 5)]
+  x = x[order(x$seqnames, x$start),]
+  names(x) = NULL
+  
+  #write to file
+  write.table(x, file = file, row.names=FALSE, sep="\t", quote = FALSE)
+}
+
+saveBed(m6A_1st_TSS_250)
+saveBed(m6A_2nd_TSS_250)
+saveBed(m6A_3rd_TSS_250)
+saveBed(m6A_4th_TSS_250)
+
+saveBed(m6A_1st_genebody)
+saveBed(m6A_2nd_genebody)
+saveBed(m6A_3rd_genebody)
+saveBed(m6A_4th_genebody)
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------
@@ -553,3 +603,81 @@ t.test(NO_PPPI_polII$PPPI, DOWN_PPPI_polII$PPPI, paired=FALSE)
 #HSP70
 336/146.12
 #2.29948
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+# Calculating the RNAPolII promoter proximal pausing index for Supplementary Figure 9F
+# Start with opening up the RNAPolII signal levels for m6A enriched transcripts of different expression quantiles
+
+m6A_1st_genebodies<- read.delim("~/PATH/m6A_1st_genebody_Counts.tabular")
+m6A_2nd_genebodies<- read.delim("~/PATH/m6A_2nd_genebody_Counts.tabular")
+m6A_3rd_genebodies<- read.delim("~/PATH/m6A_3rd_genebody_Counts.tabular")
+m6A_4th_genebodies<- read.delim("~/PATH/m6A_4th_genebody_Counts.tabular")
+
+
+m6A_1st_promoter<- read.delim("~/PATH/m6A_1st_TSS_250_Counts.tabular")
+m6A_2nd_promoter<- read.delim("~/PATH/m6A_2nd_TSS_250_Counts.tabular")
+m6A_3rd_promoter<- read.delim("~/PATH/m6A_3rd_TSS_250_Counts.tabular")
+m6A_4th_promoter<- read.delim("~/PATH/m6A_4th_TSS_250_Counts.tabular")
+
+
+# Calculating the RNAPolII promoter proximal pausing index by dividing the TSS RNAPolII counts by that of the gene body
+m6A_1st_PPPI_polII<- m6A_1st_promoter$X.PolII./m6A_1st_genebodies$X.PolII.
+m6A_2nd_PPPI_polII<- m6A_2nd_promoter$X.PolII./m6A_2nd_genebodies$X.PolII.
+m6A_3rd_PPPI_polII<- m6A_3rd_promoter$X.PolII./m6A_3rd_genebodies$X.PolII.
+m6A_4th_PPPI_polII<- m6A_4th_promoter$X.PolII./m6A_4th_genebodies$X.PolII.
+
+
+# Combining the data for plotting
+Type<- vector(length=71)
+m6A_1st_PPPI_polII<- as.data.frame(m6A_1st_PPPI_polII)
+m6A_1st_PPPI_polII<- cbind(m6A_1st_PPPI_polII, Type)
+m6A_1st_PPPI_polII$Type<- "1st quartile"
+colnames(m6A_1st_PPPI_polII)<-c("PPPI", "Type")
+
+
+Type<- vector(length=70)
+m6A_2nd_PPPI_polII<- as.data.frame(m6A_2nd_PPPI_polII)
+m6A_2nd_PPPI_polII<- cbind(m6A_2nd_PPPI_polII, Type)
+m6A_2nd_PPPI_polII$Type<- "2nd quartile"
+colnames(m6A_2nd_PPPI_polII)<-c("PPPI", "Type")
+
+
+Type<- vector(length=68)
+m6A_3rd_PPPI_polII<- as.data.frame(m6A_3rd_PPPI_polII)
+m6A_3rd_PPPI_polII<- cbind(m6A_3rd_PPPI_polII, Type)
+m6A_3rd_PPPI_polII$Type<- "3rd quartile"
+colnames(m6A_3rd_PPPI_polII)<-c("PPPI", "Type")
+
+
+Type<- vector(length=72)
+m6A_4th_PPPI_polII<- as.data.frame(m6A_4th_PPPI_polII)
+m6A_4th_PPPI_polII<- cbind(m6A_4th_PPPI_polII, Type)
+m6A_4th_PPPI_polII$Type<- "4th quartile"
+colnames(m6A_4th_PPPI_polII)<-c("PPPI", "Type")
+
+
+polII<- rbind(m6A_1st_PPPI_polII, m6A_2nd_PPPI_polII, m6A_3rd_PPPI_polII, m6A_4th_PPPI_polII)
+polII$Type <- factor(polII$Type, levels=c("1st quartile", "2nd quartile", "3rd quartile", "4th quartile"))
+
+
+# Plotting
+library(viridis)
+library(tidyverse)
+library(hrbrthemes)
+
+polII_graph<-ggplot(polII, aes(x=Type, y=PPPI, fill=Type)) +
+  geom_violin(width=1.4) +
+  geom_boxplot(width=0.1, color="black") +
+  theme_minimal() + 
+  scale_fill_viridis(discrete = TRUE) +
+  ylim(0,30) +
+  ggtitle("PolII Promoter Proximal Pausing Index") +
+  xlab("")
+
+polII_graph<- polII_graph +scale_fill_manual(values=c("grey20", "grey45", "grey75", "grey90"))
+
+pdf("n6A_quartiles_polII_PPPI.pdf", 8, 5)
+polII_graph
+dev.off()
+
