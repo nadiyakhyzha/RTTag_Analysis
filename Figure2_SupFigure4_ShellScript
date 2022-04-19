@@ -12,19 +12,16 @@ samtools index IgG_RTTag_sorted.bam
 samtools index MSL2_RTTag_sorted.bam
 
 
-
 # Generate bigwig files that are used for generating Figure 2G and Supplementary Figure 3
 
 bamCoverage --bam IgG_RTTag_sorted.bam -o IgG_RTTag.bw --normalizeUsing CPM
 bamCoverage --bam MSL2_RTTag_sorted.bam -o MSL2_RTTag.bw --normalizeUsing CPM
 
 
-
 # Generate a bigwig file where the MSL2 signal is normalized for IgG. This file is then 
 # used for Figure 2H
 
 bamCompare -b1 MSL2_RTTag_sorted.bam -b2 IgG_RTTag_sorted.bam --operation log2 --outFileFormat bigwig  --outFileName MSL2_log2_IgG.bw
-
 
 
 # Merge MSL2 CUT&Tag replicate SAM files
@@ -56,3 +53,12 @@ plotProfile --matrixFile UP_NO_MSL2.gz --colors red black --plotType se --startL
 plotProfile --matrixFile UP_NO_H4K16ac_genebody.gz --colors red black --plotType se --startLabel TSS --endLabel TES --regionsLabel  "MSL2 Enriched" "Nonenriched" --yMin 0 --samplesLabel H4K16ac --outFileName UP_NO_H4K16ac_genebody.gz.pdf
 
 
+
+# Generating a list of MSL2 peaks for Supplementary Figure 4A. To do so generate an IgG normalization control bedgraph file. Then run SEACR to generate MSL2 peaks
+
+samtools merge IgG_CT_n2.bam S2_CUT&Tag_IgG_n3.sam S2_CUT&Tag_IgG_n1.sam                  
+samtools sort -n IgG_CT_n2.bam -T IgG_CT_sorted_n2 -o IgG_CT_sorted_n2.bam
+bedtools bamtobed -bedpe -i IgG_CT_sorted_n2.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >IgG_CT_n2.1-1000.bed
+bedtools genomecov -i IgG_CT_n2.1-1000.bed -g /Users/nkhyzha/Documents/AnalysisTools/dm6.chrom.sizes.txt -bg >IgG_CT_n2.1-1000.bedgraph
+
+bash SEACR_1.3.sh MSL2_CT.1-1000.bedgraph IgG_CT_n2.1-1000.bedgraph norm stringent MSL2_peak
