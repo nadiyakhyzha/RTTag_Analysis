@@ -203,3 +203,41 @@ MSL2_NO_genebody<- getFullLength(MSL2_NO)
 
 write.csv(MSL2_UP_genebody, "MSL2_UP_genebody.csv")
 write.csv(MSL2_NO_genebody, "MSL2_NO_genebody.csv")
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# The following was used to generate Supplementary Figure 4A where distance from MSL2 enriched transcripts to MSL2 peaks is calculated
+
+# Open the SEACR generated MSL2 peaks and turn into GRanges format
+MSL2_peaks <- read.delim("~/PATH/MSL2_peak.stringent.bed", header=FALSE)
+colnames(MSL2_peaks)<- c("chr", "start", "end", "score", "width", "name")
+MSL2_peaks_granges<- makeGRangesFromDataFrame(MSL2_peaks)
+
+# Turn MSL2 enriched and nonenriched transcript into GRanges format
+MSL2_UP_granges<- makeGRangesFromDataFrame(MSL2_UP[,c(1:5,8)])
+seqlevelsStyle(MSL2_UP_granges) <- "UCSC"
+
+MSL2_NO_granges<- makeGRangesFromDataFrame(MSL2_NO[,c(1:5,8)])
+seqlevelsStyle(MSL2_NO_granges) <- "UCSC"
+
+# Find the nearest MSL2 peak to the MSL2 enriched or nonenriched transcript
+UP_distances<- as.data.frame(distanceToNearest(MSL2_UP_granges, MSL2_peaks_granges, ignore.strand=TRUE))
+NO_distances<- as.data.frame(distanceToNearest(MSL2_NO_granges, MSL2_peaks_granges, ignore.strand=TRUE))
+
+# Plot the distance MSL2 enriched or nonenriched transcripts to their nearest MSL2 peak
+pdf("MSL2_peakdistance_MSL2enriched_nonenriched.pdf", 4, 5)
+boxplot(UP_distances$distance, NO_distances$distance, col=c("red", "grey"), names=c("MSL2 enriched", "nonenriched"), ylab="Distance (bp)")
+dev.off()
+
+# Looking at the distribution of distances from MSL2 enriched or nonenriched transcripts to their nearest MSL2 peak
+quantile(UP_distances$distance)
+#0%     25%     50%     75%    100% 
+#0       0       0   12608 4233816 
+
+quantile(NO_distances$distance)
+#0%       25%       50%       75%      100% 
+#0.0  206561.5 1058439.0 2841851.2 7022494.0 
+
+# Testing for statistical significance
+t.test(UP_distances$distance, NO_distances$distance)
+# p-value < 2.2e-16
