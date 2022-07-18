@@ -2,7 +2,7 @@
 
 library(rtracklayer)
 library(DESeq2)
-library(ggplot2)
+library(gplots)
 
 gtf<- import("~/PATH/Drosophila_melanogaster.BDGP6.28.47.gtf")
 gtf_df<-as.data.frame(gtf)
