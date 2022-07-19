@@ -301,13 +301,13 @@ boxplot(K27me3_oligodT_genebody_over9$average_CPM, K27me3_oligodT_genebody_under
 dev.off()
 
 mean(K27me3_oligodT_genebody_over9$average_CPM)
-# 8.524735
+# 6.844081
 
 mean(K27me3_oligodT_genebody_under9$average_CPM)
-# 60.85507
+# 50.13285
 
 t.test(K27me3_oligodT_genebody_over9$average_CPM, K27me3_oligodT_genebody_under9$average_CPM, paired=FALSE)
-# 0.003874
+# 0.00488
 
 
 
