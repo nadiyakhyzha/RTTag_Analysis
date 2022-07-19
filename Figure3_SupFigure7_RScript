@@ -162,7 +162,7 @@ average_CPM<- vector(length=nrow(RNAseq_merged))
 RNAseq_merged <- cbind(RNAseq_merged, average_CPM)
 
 for (i in 1:nrow(RNAseq_merged)){
-  RNAseq_merged$average_CPM[i]<- mean(RNAseq_merged$`featureCounts_RNAseq_n1[, 2]`[i], RNAseq_merged$`featureCounts_RNAseq_n2[, 2]`[i])
+  RNAseq_merged$average_CPM[i]<- mean(c(RNAseq_merged$`featureCounts_RNAseq_n1[, 2]`[i], RNAseq_merged$`featureCounts_RNAseq_n2[, 2]`[i]))
 }
 
 average_CPM<- vector(length=nrow(Results_K27me3_IgG_oligodt))
@@ -174,13 +174,13 @@ for (i in 1:nrow(Results_K27me3_IgG_oligodt)){
 }
 
 mean(Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="UP",13])
-# 16.56515
+# 13.4959
 
 mean(Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="NO",13])
-# 97.11317
+# 67.93935
 
 t.test((Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="UP",13]), (Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="NO",13]), paired = FALSE)
-#p-value < 2.2e-16
+#p-value = 4.32e-10
 
 pdf("K27me3_CPM.pdf", 2, 4)
 boxplot(Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="UP",13], Results_K27me3_IgG_oligodt[Results_K27me3_IgG_oligodt$diffexpressed=="NO",13], outline=FALSE, names= c("K27me3 Enriched", "Non-Enriched"), col=c("red", "grey"), ylab="CPM")
