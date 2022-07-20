@@ -197,9 +197,9 @@ getTSS_250 <- function(x){
   return(x)
 }
 
-m6A_UP_TSS_250<-getTSS(m6A_UP)
-m6A_DOWN_TSS_250<-getTSS(m6A_DOWN)
-m6A_NO_TSS_250<-getTSS(m6A_NO)
+m6A_UP_TSS_250<-getTSS_250(m6A_UP)
+m6A_DOWN_TSS_250<-getTSS_250(m6A_DOWN)
+m6A_NO_TSS_250<-getTSS_250(m6A_NO)
 
 write.csv(m6A_UP_TSS_250, "m6A_UP_TSS_250.csv")
 write.csv(m6A_DOWN_TSS_250, "m6A_DOWN_TSS_250.csv")
