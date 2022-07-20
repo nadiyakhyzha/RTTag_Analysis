@@ -355,7 +355,7 @@ average_CPM<- vector(length=nrow(RNAseq_merged))
 RNAseq_merged <- cbind(RNAseq_merged, average_CPM)
 
 for (i in 1:nrow(RNAseq_merged)){
-  RNAseq_merged$average_CPM[i]<- mean(RNAseq_merged$`featureCounts_RNAseq_n1[, 2]`[i], RNAseq_merged$`featureCounts_RNAseq_n2[, 2]`[i])
+  RNAseq_merged$average_CPM[i]<- mean(c(RNAseq_merged$`featureCounts_RNAseq_n1[, 2]`[i], RNAseq_merged$`featureCounts_RNAseq_n2[, 2]`[i]))
 }
 
 average_CPM <-vector(length=nrow(m6a_IgG_ALL))
@@ -397,19 +397,19 @@ expression_plot
 dev.off()
 
 mean(as.numeric(Expression_UP[,1]))
-# 191.9822
+# 154.4128
 
 mean(as.numeric(Expression_DOWN[,1]))
-# 4859.66
+# 3477.92
 
 t.test(as.numeric(Expression_UP[,1]), as.numeric(Expression_DOWN[,1]), paired = FALSE)
-# 6.19e-07
+# p-value = 0.001265
 
 t.test(as.numeric(Expression_NO[,1]), as.numeric(Expression_DOWN[,1]), paired = FALSE)
-# 3.367e-07
+# p-value = 0.0008931
 
 t.test(as.numeric(Expression_UP[,1]), as.numeric(Expression_NO[,1]), paired = FALSE)
-# 1.344e-06
+# p-value = 2.979e-08
 
 
 # Break up m6A enriched transcripts based on expression quantiles
