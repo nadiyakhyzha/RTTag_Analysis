@@ -165,8 +165,8 @@ dev.off()
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------
-# Obtain the TSS coordinates of m6A enriched, nonenriched and depleted genes to plot Ime4 CUT&Tag signal over them for Figure 4E & Supplementary
-# Figure 5B; H3K4me3 CUT&Tag
+# Obtain the TSS coordinates of m6A enriched, nonenriched and depleted genes to plot Ime4 CUT&Tag signal over them for Figure 4E & Extended Data
+# Figure 9B; H3K4me3 CUT&Tag
 # signal over them for Figure 5C; GAF CUT&Tag signal for Figure 5F. Also obtain gene body coordinates for plotting H3K36me3 CUT&Tag for Figure 5C
 # and RNA PolII CUT&Tag signal for Figure 5G. The TSS and gene body coordinates were also used for calculating RNA PolII pausing in Figure 5H.
 
@@ -225,7 +225,7 @@ write.csv(m6A_DOWN_genebody, "m6A_DOWN_genebody.csv")
 write.csv(m6A_NO_genebody, "m6A_NO_genebody.csv")
 
 # The promoter coordinates were obtained for m6A enriched and depleted transcripts. These were than used for motif analysis using MEME for
-# Supplementary Figure 5E
+# Extended Data Figure 9E
 
 getPromoter <- function(x){
   x<- x
@@ -343,7 +343,7 @@ m6A_UP_METTL3 <- cbind(m6A_UP_METTL3, ratio)
 
 #-----------------------------------------------------------------------------------------------------------------------------------
 # Using RNA-seq data to quantify expression levels of m6A enriched, non enriched and depleted transcripts for Figure 5B. Also later used
-# for subdiving m6A enriched transcripts into quartiles for Supplementary Figure 9F. 
+# for subdiving m6A enriched transcripts into quartiles for Extended Data Figure 9F. 
 
 # Open up RNA-seq data
 featureCounts_RNAseq_n1<- read.delim("~/PATH/featureCounts_S2_WC_RNAseq_n1.tabular", comment.char="#")[,c(1,7)]
@@ -606,7 +606,7 @@ t.test(NO_PPPI_polII$PPPI, DOWN_PPPI_polII$PPPI, paired=FALSE)
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------
-# Calculating the RNAPolII promoter proximal pausing index for Supplementary Figure 9F
+# Calculating the RNAPolII promoter proximal pausing index for Extended Data Figure 9F
 # Start with opening up the RNAPolII signal levels for m6A enriched transcripts of different expression quantiles
 
 m6A_1st_genebodies<- read.delim("~/PATH/m6A_1st_genebody_Counts.tabular")
