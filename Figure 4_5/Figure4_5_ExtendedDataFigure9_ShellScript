@@ -7,7 +7,7 @@ samtools merge m6A_RTTag.bam S2_RT&Tag_m6A_n1.bam S2_RT&Tag_m6A_n2.bam S2_RT&Tag
 
 
 
-# Generating bigwig files for plotting
+# Generating bigwig files for plotting Figure 4C
 
 samtools sort IgG_RTTag.bam -T IgG_RTTag_sorted -o IgG_RTTag_sorted.bam
 samtools sort m6A_RTTag.bam -T m6A_RTTag_sorted -o m6A_RTTag_sorted.bam
@@ -32,7 +32,7 @@ samtools sort -n PolII_CT.bam -T PolII_CT_sorted -o PolII_CT_sorted.bam
 
 
 
-# Generating bigwig files which will be used for plotting Figure 4E, Supplementary 
+# Generating bigwig files which will be used for plotting Figure 4E, Extended Data 
 # Figure 9B and C, and Figure 5 A, C, F, G, H
 
 bedtools bamtobed -bedpe -i IgG_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >IgG_CT.1-1000.bed
@@ -127,7 +127,7 @@ plotProfile --matrixFile METTL3_m6A_UPNODOWN.gz --colors red black blue --plotTy
 
 
 # Plotting the IgG and METTL3 CUT&Tag signal over the TSS of m6A depleted genes.
-# Used in Supplementary Figure 9B
+# Used in Extended Data Figure 9B
 
 computeMatrix reference-point -S IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw -R m6A_DOWN_TSS.txt -a 1000 -b 1000 --binSize 25  -out IgG_METTL3_DOWN_TSS.gz
 
@@ -147,7 +147,7 @@ plotHeatmap --matrixFile METTL3_polII_Correlation_top25_RNAseq_TSS.gz --colorMap
 
 
 # Plotting the correlation between METTL3 and RNA PolII signal. Used in 
-# Supplementary Figure 9C.
+# Extended Data Figure 9C.
 
 multiBigwigSummary BED-file -b METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw  -o correlation_with_METTL3_TSS.npz -l METTL3 polII -bs 10000 --BED top25_RNAseq_TSS_500bp.bed
 
@@ -216,7 +216,7 @@ multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgra
 
 # Quantifying the IgG, METTL3, and RNA PolII CUT&Tag signal at the TSS or the gene bodies
 # of m6A enriched transcripts broken into quantiles based on their expression levels. These values will than be used to
-# quantify the RNA polymerase II pausing index for Supplementary Figure 9F
+# quantify the RNA polymerase II pausing index for Extended Data Figure 9F
 
 
 multiBigwigSummary BED-file -b PolII_CT.1-1000.bedgraph.bw --BED m6A_1st_TSS_250.bed -o gtf_m6A_1st_TSS_250_Counts.npz -l PolII  --outRawCounts m6A_1st_TSS_250_Counts.tab
