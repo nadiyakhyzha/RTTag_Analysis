@@ -12,7 +12,7 @@ samtools index IgG_RTTag_sorted.bam
 samtools index MSL2_RTTag_sorted.bam
 
 
-# Generate bigwig files that are used for generating Figure 2G and Supplementary Figure 4B
+# Generate bigwig files that are used for generating Figure 2G and Extended Data Figure 4B
 
 bamCoverage --bam IgG_RTTag_sorted.bam -o IgG_RTTag.bw --normalizeUsing CPM
 bamCoverage --bam MSL2_RTTag_sorted.bam -o MSL2_RTTag.bw --normalizeUsing CPM
@@ -31,7 +31,7 @@ samtools sort -n MSL2_CT.bam -T MSL2_CT_sorted -o MSL2_CT_sorted.bam
 
 
 
-# Generating an MSL2 CUT&Tag bigwig file. This bigwig file is used in Supplemetary Figure # 3 and for plotting Figure 2I
+# Generating an MSL2 CUT&Tag bigwig file. This bigwig file is used in Extended Data Figure 4B and for plotting Figure 2I
 
 bedtools bamtobed -bedpe -i MSL2_CT_sorted.bam | awk -v OFS="\t" '{print $1, $2, $6, $7, $6-$2}' | awk -v minLen=1 -v maxLen=1000 '$5 >= minLen && $5 <= maxLen {print $0}' | sort -k1,1 >MSL2_CT.1-1000.bed
 
@@ -54,7 +54,7 @@ plotProfile --matrixFile UP_NO_H4K16ac_genebody.gz --colors red black --plotType
 
 
 
-# Generating a list of MSL2 peaks for Supplementary Figure 4A. To do so generate an IgG normalization control bedgraph file. Then run SEACR to generate MSL2 peaks
+# Generating a list of MSL2 peaks for Extended Data Figure 4A. To do so generate an IgG normalization control bedgraph file. Then run SEACR to generate MSL2 peaks
 
 samtools merge IgG_CT_n2.bam S2_CUT&Tag_IgG_n3.sam S2_CUT&Tag_IgG_n1.sam                  
 samtools sort -n IgG_CT_n2.bam -T IgG_CT_sorted_n2 -o IgG_CT_sorted_n2.bam
