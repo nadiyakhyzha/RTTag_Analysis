@@ -78,7 +78,7 @@ Count_Table_DESeq<- DESeq(Count_Table)
 Counts_normalized<- cbind(gtf_df[,c(1:6,11,8:9)],counts(Count_Table_DESeq, normalized=TRUE))
 
 #-----------------------------------------------------------------------------------------------------------------------------------
-# Retrieving the read counts for hox genes. This data is used for generating Supplementary Figure 6C
+# Retrieving the read counts for hox genes. This data is used for generating Extended Data Figure 6C
 
 hox_genes_names<- c("lab", "pb", "zen", "bcd", "Dfd", "Scr", "ftz", "Antp", "Ubx", "abd-A", "lncRNA:iab4", "lncRNA:iab8","Abd-B")
 hox_genes<-matrix(nrow=length(hox_genes_names), ncol=18)
@@ -121,7 +121,7 @@ rownames(K27me3_dataframe) <- K27me3_dataframe$K27me3_oligodT.K27me3_UP.V4
 K27me3_dataframe <- K27me3_dataframe[,-1]
 K27me3_dataframe<- as.matrix(K27me3_dataframe)
 
-# Plot IgG and H3K27me3 RT&Tag signal with 100k and 25k nuclei. This is used for Supplementary Figure 6A
+# Plot IgG and H3K27me3 RT&Tag signal with 100k and 25k nuclei. This is used for Extended Data Figure 6A
 
 K27me3_dataframe_no5k<- K27me3_dataframe[,1:4]
 
@@ -160,7 +160,7 @@ m6A_dataframe<- as.matrix(m6A_dataframe)
 
 
 
-# Plot IgG and m6A RT&Tag signal with 100k and 25k nuclei. This is used for Supplementary Figure 8A
+# Plot IgG and m6A RT&Tag signal with 100k and 25k nuclei. This is used for Extended Data Figure 8A
 
 m6A_dataframe_no5k<- m6A_dataframe[,1:4]
 
