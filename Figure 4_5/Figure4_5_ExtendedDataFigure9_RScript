@@ -525,9 +525,9 @@ UP_genebodies<- read.delim("~/PATH/METTL3_UP_genebody.tabular")
 DOWN_genebodies<- read.delim("~/PATH/METTL3_DOWN_genebody.tabular")
 NO_genebodies<- read.delim("~/PATH/METTL3_NO_genebody.tabular")
 
-UP_promoter<- read.delim("~/PATH/METTL3_UP_TSS.tabular")
-DOWN_promoter<- read.delim("~/PATH/METTL3_DOWN_TSS.tabular")
-NO_promoter<- read.delim("~/PATH/METTL3_NO_TSS.tabular")
+UP_promoter<- read.delim("~/PATH/METTL3_UP_TSS_250.tabular")
+DOWN_promoter<- read.delim("~/PATH/METTL3_DOWN_TSS_250.tabular")
+NO_promoter<- read.delim("~/PATH/METTL3_NO_TSS_250.tabular")
 
 
 # Calculating the RNAPolII promoter proximal pausing index by dividing the TSS RNAPolII counts by that of the gene body
@@ -537,21 +537,21 @@ NO_PPPI_polII<- NO_promoter$X.PolII./NO_genebodies$X.PolII.
 
 
 # Combining the data for plotting
-Type<- vector(length=269)
+Type<- vector(length=281)
 UP_PPPI_polII<- as.data.frame(UP_PPPI_polII)
 UP_PPPI_polII<- cbind(UP_PPPI_polII, Type)
 UP_PPPI_polII$Type<- "m6A Enriched"
 colnames(UP_PPPI_polII)<-c("PPPI", "Type")
 
 
-Type<- vector(length=103)
+Type<- vector(length=106)
 DOWN_PPPI_polII<- as.data.frame(DOWN_PPPI_polII)
 DOWN_PPPI_polII<- cbind(DOWN_PPPI_polII, Type)
 DOWN_PPPI_polII$Type<- "m6A Depleted"
 colnames(DOWN_PPPI_polII)<-c("PPPI", "Type")
 
 
-Type<- vector(length=12418)
+Type<- vector(length=12129)
 NO_PPPI_polII<- as.data.frame(NO_PPPI_polII)
 NO_PPPI_polII<- cbind(NO_PPPI_polII, Type)
 NO_PPPI_polII$Type<- "Nonenriched"
@@ -582,13 +582,13 @@ dev.off()
 
 # Calculating the mean PPPI for different categories and performing statistical analysis
 mean(as.numeric(UP_PPPI_polII$PPPI), na.rm=TRUE)
-# 7.424406
+# 6.275363
 
 mean(as.numeric(NO_PPPI_polII$PPPI), na.rm=TRUE)
-# 2.139793
+# 1.909311
 
 mean(as.numeric(DOWN_PPPI_polII$PPPI), na.rm=TRUE)
-# 1.77991
+# 1.592228
 
 t.test(UP_PPPI_polII$PPPI, NO_PPPI_polII$PPPI, paired=FALSE)
 # < 2.2e-16
@@ -597,12 +597,12 @@ t.test(UP_PPPI_polII$PPPI, DOWN_PPPI_polII$PPPI, paired=FALSE)
 # < 2.2e-16
 
 t.test(NO_PPPI_polII$PPPI, DOWN_PPPI_polII$PPPI, paired=FALSE)
-# 0.001339
+# 0.0009435
 
 # Calculating the PPPI for HSP70's
 #HSP70
-336/146.12
-#2.29948
+314.092184/144.9087
+#2.167518
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------
