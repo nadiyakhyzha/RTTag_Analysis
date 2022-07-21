@@ -206,7 +206,7 @@ write.csv(MSL2_NO_genebody, "MSL2_NO_genebody.csv")
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-# The following was used to generate Supplementary Figure 4A where distance from MSL2 enriched transcripts to MSL2 peaks is calculated
+# The following was used to generate Extended Data Figure 4A where distance from MSL2 enriched transcripts to MSL2 peaks is calculated
 
 # Open the SEACR generated MSL2 peaks and turn into GRanges format
 MSL2_peaks <- read.delim("~/PATH/MSL2_peak.stringent.bed", header=FALSE)
