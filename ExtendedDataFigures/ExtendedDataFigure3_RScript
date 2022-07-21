@@ -1,4 +1,4 @@
-# The following was used for generating Supplementary Figure 3A. Values for plotting were obtained from QualiMap RNA-Seq QC. 
+# The following was used for generating Extended Data Figure 3A. Values for plotting were obtained from QualiMap RNA-Seq QC. 
 # For K27me3
 
 exonic<- 4758527
@@ -42,7 +42,7 @@ dev.off()
 
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------
-# The following was used for generating Supplementary Figure 3B. Values for plotting were obtained from RSeQC. Plot as density plot.
+# The following was used for generating Extended Data Figure 3B. Values for plotting were obtained from RSeQC. Plot as density plot.
 
 # For K27me3 RT&Tag
 
