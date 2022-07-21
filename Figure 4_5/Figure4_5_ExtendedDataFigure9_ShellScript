@@ -197,17 +197,17 @@ plotProfile --matrixFile PolII_m6A_UPNODOWN.gz --colors red black blue --plotTyp
 # of m6A enriched, non enriched, and depleted genes. These values will than be used to
 # quantify the RNA polymerase II pausing index for Figure 5H
 
-multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_UP_TSS_250.bed -o METTL3_UP_TSS_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_UP_TSS.tab
+multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_UP_TSS_250.bed -o METTL3_UP_TSS_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_UP_TSS_250.tab
 
 multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_UP_genebody.bed -o METTL3_UP_genebody_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_UP_genebody.tab
  
 
-multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_DOWN_TSS_250.bed -o METTL3_DOWN_TSS_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_DOWN_TSS.tab
+multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_DOWN_TSS_250.bed -o METTL3_DOWN_TSS_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_DOWN_TSS_250.tab
 
 multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_DOWN_genebody.bed -o METTL3_DOWN_genebody_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_DOWN_genebody.tab
  
 
-multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_NO_TSS_250.bed -o METTL3_NO_TSS_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_NO_TSS.tab
+multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_NO_TSS_250.bed -o METTL3_NO_TSS_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_NO_TSS_250.tab
  
 multiBigwigSummary BED-file -b IgG_CT.1-1000.bedgraph.bw METTL3_CT.1-1000.bedgraph.bw PolII_CT.1-1000.bedgraph.bw --BED m6A_NO_genebody.bed -o METTL3_NO_genebody_Counts.npz -l IgG METTL3 PolII --outRawCounts METTL3_NO_genebody.tab
 
