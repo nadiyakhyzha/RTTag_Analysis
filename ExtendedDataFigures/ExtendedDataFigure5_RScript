@@ -3,7 +3,7 @@
 RIPseq <- read_excel("~/PATH/eMLE_vs_eInput_RIPseq_Counts.xlsx")
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------
-# Generating the Volcano Plot in Supplementary Figure 5A.
+# Generating the Volcano Plot in Extended Data Figure 5A.
 
 # Mark transcripts as enriched, nonenriched, and depleted
 
@@ -47,7 +47,7 @@ dev.off()
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------
-# Generating the Venn Diagram in Supplementary Figure 5C.
+# Generating the Venn Diagram in Extended Data Figure 5C.
 
 # Open up the list of MSL2 enriched transcripts
 MSL2_UP <- read.csv("~/PATH/MSL2_UP_genebody.csv")
@@ -73,7 +73,7 @@ test<- venn.diagram(
 
 
 #--------------------------------------------------------------------------------------------------------------------------------------------------------
-# Plotting the Pie Charts showing chromosomal distribution of MSL2 RT&Tag and MLE RIP-seq unique transcripts 
+# Plotting the Pie Charts showing chromosomal distribution of MSL2 RT&Tag and MLE RIP-seq unique transcripts for Extended Data Figure 5D. 
 
 MSL2_UP_withoutrox<- MSL2_UP[((MSL2_UP$gene_name != "lncRNA:roX2")&(MSL2_UP$gene_name != "lncRNA:roX1")),]
 MLE_UP_withoutrox<- MLE_UP[((MLE_UP$symbol != "roX2")&(MLE_UP$symbol != "roX1"))&(MLE_UP$symbol != "NA"),]
