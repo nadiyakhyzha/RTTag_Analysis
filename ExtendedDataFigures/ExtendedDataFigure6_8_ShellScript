@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Make bigwig files for visualization of RT&Tag data for Supplementary Figure 6 and 8
+# Make bigwig files for visualization of RT&Tag data for Extended Data Figure 6 and 8
 
 samtools merge IgG_100k.bam S2_RT&Tag_IgG_100knuclei_n1.bam S2_RT&Tag_IgG_100knuclei_n2.bam 
 samtools merge K27me3_100k.bam S2_RT&Tag_H3K27me3_100knuclei_n1.bam S2_RT&Tag_H3K27me3_100knuclei_n2.bam 
