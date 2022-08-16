@@ -374,28 +374,6 @@ Expression_UP<- cbind(Expression_UP, "m6A Enriched")
 Expression_DOWN<- cbind(Expression_DOWN, "m6A Depleted")
 Expression_NO<- cbind(Expression_NO, "Nonenriched")
 
-expression<- as.data.frame(rbind( Expression_DOWN, Expression_UP, Expression_NO))
-colnames(expression)<- c("CPM", "type")
-expression$type <- as.factor(expression$type)
-expression$CPM <- as.numeric(expression$CPM)
-
-expression$type <- factor(expression$type, levels=c("m6A Enriched", "Nonenriched", "m6A Depleted"))
-
-expression_plot<- ggplot(expression, aes(x=type, y=CPM, fill=type)) +
-  geom_violin(width=1.4) +
-  geom_boxplot(width=0.1, color="black") +
-  scale_fill_viridis(discrete = TRUE) +
-  theme_minimal()+ 
-  ylim(0,6000)+
-  ylab("CPM") +
-  xlab("")
-
-expression_plot<- expression_plot +scale_fill_manual(values=c("red", "grey", "blue"))
-
-pdf("m6A_expression.pdf", 5, 5)
-expression_plot
-dev.off()
-
 mean(as.numeric(Expression_UP[,1]))
 # 154.4128
 
@@ -410,6 +388,18 @@ t.test(as.numeric(Expression_NO[,1]), as.numeric(Expression_DOWN[,1]), paired = 
 
 t.test(as.numeric(Expression_UP[,1]), as.numeric(Expression_NO[,1]), paired = FALSE)
 # p-value = 2.979e-08
+
+
+Expression_UP_log<- log2(as.numeric(Expression_UP[,1]))
+Expression_NO[,1]<- sub(0, 0.01, Expression_NO[,1])
+Expression_NO_log<- log2(as.numeric(Expression_NO[,1]))
+Expression_DOWN_log<- log2(as.numeric(Expression_DOWN[,1]))
+
+pdf("m6A_expression_log2.pdf", 3, 5)
+boxplot(Expression_UP_log, Expression_NO_log, Expression_DOWN_log, outline=FALSE, names= c("m6A Enriched", "Non-Enriched", "m6A Depleted"), col=c("red", "grey", "blue"), ylab="CPM log2")
+dev.off()
+
+
 
 
 # Break up m6A enriched transcripts based on expression quantiles
